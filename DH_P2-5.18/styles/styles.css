@@ -212,6 +212,10 @@
             display: flex;
             flex-direction: column;
             gap: 0.25rem;
+            --header-icon-size: 2.25rem;
+            --header-control-height: 2.2rem;
+            --header-field-max-width: 160px;
+            --header-switcher-width: 12.25rem;
         }
 
         .header-row {
@@ -224,20 +228,119 @@
             padding-bottom: 2px; /* space for scrollbar */
         }
 
-.app-header > .header-row:first-of-type {
-    justify-content: space-between;
-    padding-left: 0.25rem;
-    padding-right: 0.25rem;
-}
+        .app-header > .header-row:first-of-type,
+        #contextual-controls .header-row:first-child {
+            display: grid;
+            grid-template-columns: var(--header-icon-size) minmax(120px, var(--header-field-max-width)) minmax(var(--header-switcher-width), 1fr);
+            align-items: center;
+            gap: 0.5rem;
+            padding-left: 0.25rem;
+            padding-right: 0.25rem;
+        }
+
         #contextual-controls .header-row {
             border-top: 1px solid var(--color-panel-border);
             padding-top: 0.25rem;
         }
-        #contextual-controls .header-row:first-child,
+        #contextual-controls .header-row:first-child {
+            gap: 0.5rem;
+        }
         #contextual-controls .header-row:has(#positional-filters) {
             gap: 0.25rem;
             padding-left: 0.25rem;
             padding-right: 0.25rem;
+        }
+
+        #primary-header-row .menu-container,
+        #secondary-header-row .analyzer-button-container {
+            width: var(--header-icon-size);
+            height: var(--header-control-height);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #primary-header-row .menu-container {
+            position: relative;
+        }
+
+        #primary-header-row .menu-button,
+        #secondary-header-row .analyzer-button {
+            width: 100%;
+            height: 100%;
+            border-radius: 8px;
+            box-sizing: border-box;
+        }
+
+        #primary-header-row .menu-button svg {
+            width: 1.25rem;
+            height: 1.25rem;
+        }
+
+        #secondary-header-row .analyzer-button {
+            border: none;
+            background: transparent;
+            color: var(--color-text-secondary);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            gap: 0.1rem;
+        }
+
+        #secondary-header-row .analyzer-button i {
+            display: block;
+            margin: 0;
+            line-height: 1;
+            font-size: 1.2rem;
+        }
+
+        #secondary-header-row .analyzer-button .label {
+            display: block;
+            margin: -2px 0 0 0;
+            padding: 0;
+            font-size: 0.5rem;
+            font-weight: 500;
+            line-height: 1;
+            color: inherit;
+        }
+
+        #secondary-header-row .analyzer-button:hover i,
+        #secondary-header-row .analyzer-button:focus-visible i {
+            color: var(--color-text-primary);
+        }
+
+        #primary-header-row .username-area,
+        #secondary-header-row .custom-select-wrapper {
+            justify-self: center;
+            width: 100%;
+        }
+
+        #primary-header-row .primary-switcher,
+        #secondary-header-row .secondary-switcher {
+            justify-self: end;
+            width: min(var(--header-switcher-width), 100%);
+            max-width: var(--header-switcher-width);
+            height: var(--header-control-height);
+            display: flex;
+            align-items: stretch;
+            margin-block: 0.075rem;
+        }
+
+        #primary-header-row .primary-switcher button,
+        #secondary-header-row .secondary-switcher button {
+            flex: 1 1 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #primary-header-row .menu-container,
+        #primary-header-row .username-area,
+        #secondary-header-row .analyzer-button-container,
+        #secondary-header-row .custom-select-wrapper {
+            margin-block: 0.075rem;
         }
 
         #contextual-controls {
@@ -257,8 +360,11 @@
                 .username-area {
                     flex-grow: 1;
                     min-width: 100px; /* prevent it from getting too small */
-                    max-width: 160px;
-                    padding: .3rem;
+                    max-width: var(--header-field-max-width);
+                    padding: 0;
+                    height: var(--header-control-height);
+                    display: flex;
+                    align-items: stretch;
                 }
                 /* · · Replace existing #usernameInput block with this · · */
         #usernameInput {
@@ -277,6 +383,7 @@
           font-size: 0.5rem;
           font-weight: 300;
           width: 100%;
+          height: 100%;
           transition: all 0.2s ease;
         }
         
@@ -307,8 +414,12 @@
         .custom-select-wrapper {
             position: relative;
             flex-grow: 1;
-            min-width: 100px;
-            max-width: 120px;
+            min-width: 0;
+            max-width: var(--header-field-max-width);
+            height: var(--header-control-height);
+            display: flex;
+            align-items: stretch;
+            overflow: hidden;
         }
         #leagueSelect {
             appearance: none;  /* EDITED: Increased transparency */
@@ -317,11 +428,13 @@
             border-radius: 8px;
             -webkit-backdrop-filter: blur(4px) saturate(110%);
             backdrop-filter: blur(4px) saturate(110%);
-            box-shadow: inset 0 1px 1px rgba(255,255,255,0.05);           
-            padding: 0.45rem 1.5rem 0.45rem 0.5rem;
+            box-shadow: inset 0 1px 1px rgba(255,255,255,0.05);
+            padding: 0.32rem 1.25rem 0.32rem 0.5rem;
             font-size: 0.7rem;
             color: #c4c8ea;
             width: 100%;
+            height: 100%;
+            min-width: 0;
             cursor: pointer;
             white-space: nowrap;
             overflow: hidden;
@@ -360,7 +473,7 @@
             display: flex;
             border: 1px solid var(--color-panel-border);
             border-radius: 8px;
-            padding: 0.14rem;
+            padding: 0.1rem 0.12rem;
             gap: 0.15rem;
             flex-shrink: 0;
        }
@@ -380,7 +493,7 @@
 
 /* ⬇︎ MAIN BUTTON STYLES  ⬇︎ */
         .primary-switcher button {
-            padding: 0.15rem 0.6rem;
+            padding: 0.12rem 0.55rem;
             font-size: 0.85rem;
             font-weight: 400;
             border: 1px solid transparent;
@@ -393,7 +506,7 @@
             text-shadow: 0 0 2px rgba(0,0,0,0.2);
         }
         .secondary-switcher button, .filter-btn {
-            padding: 0.15rem 0.6rem;
+            padding: 0.12rem 0.55rem;
             font-size: 0.85rem;
             font-weight: 400;
             border: 1px solid transparent;
@@ -520,6 +633,46 @@
 
         .control-button-subtle.active {
             color: var(--color-text-secondary);
+        }
+
+        #compareButton {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.15rem;
+        }
+
+        #compareButton .button-text {
+            line-height: 1;
+        }
+
+        #compareButton .button-icon-label {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.05rem;
+            line-height: 1;
+        }
+
+        #compareButton .button-icon-label i {
+            font-size: 1rem;
+            line-height: 1;
+        }
+
+        #compareButton .button-icon-label .label {
+            font-size: 0.5rem;
+            font-weight: 500;
+            line-height: 1;
+            margin-top: -2px;
+        }
+
+        #compareButton.active .button-icon-label {
+            display: flex;
+        }
+
+        #compareButton.active .button-text {
+            display: none;
         }
 
 
@@ -2160,6 +2313,25 @@ font-weight: 500 !important;
 #clearFiltersButton {
     margin-left: 0rem;   /* small space on the left  */
     margin-right: 0.6rem;  /* larger space on the right */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.1rem;
+    padding: 0;
+    text-decoration: none;
+}
+
+#clearFiltersButton i {
+    font-size: 1rem;
+    line-height: 1;
+}
+
+#clearFiltersButton .label {
+    font-size: 0.5rem;
+    font-weight: 500;
+    line-height: 1;
+    margin-top: -2px;
 }
 
 .team-header-item .team-name {
@@ -2181,6 +2353,22 @@ font-weight: 500 !important;
     transition: all 0.2s ease;
     white-space: nowrap;
     color: #d1b1d1aa;
+}
+
+body[data-page="rosters"] #secondary-header-row #analyzeLeagueButton {
+    padding: 0;
+    border: none;
+    background: transparent !important;
+    box-shadow: none;
+    color: var(--color-text-secondary);
+}
+
+body[data-page="rosters"] #secondary-header-row #analyzeLeagueButton.glow-on-select,
+body[data-page="rosters"] #secondary-header-row #analyzeLeagueButton.active {
+    box-shadow: none;
+    background: transparent;
+    border: none;
+    color: var(--color-text-primary);
 }
 
 #analyzeLeagueButton.glow-on-select {

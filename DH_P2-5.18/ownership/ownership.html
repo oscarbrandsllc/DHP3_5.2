@@ -74,7 +74,13 @@
 <button class="filter-btn" data-position="FLX">FLX</button>
 </div>
 <div class="compare-controls">
-<button class="control-button" disabled="" id="compareButton">Preview</button>
+<button class="control-button" disabled="" id="compareButton" type="button" aria-label="Preview selected teams">
+    <span class="button-text">Preview</span>
+    <span class="button-icon-label">
+        <i class="fa-solid fa-arrows-left-right-to-line" aria-hidden="true"></i>
+        <span class="label">Show All</span>
+    </span>
+</button>
 <button class="control-button-subtle hidden" id="clearCompareButton">Clear</button>
 </div>
 </div>
