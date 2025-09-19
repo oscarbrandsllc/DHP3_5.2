@@ -44,6 +44,57 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
         const menuOwnership = document.getElementById('menu-ownership');
         const menuAnalyzer = document.getElementById('menu-analyzer');
         const analyzeLeagueButton = document.getElementById('analyzeLeagueButton');
+        const headerElement = document.querySelector('.app-header');
+
+        let headerSyncRaf = null;
+        const syncHeaderSizing = () => {
+            if (pageType !== 'rosters' || !headerElement) return;
+
+            if (headerSyncRaf) {
+                cancelAnimationFrame(headerSyncRaf);
+            }
+
+            headerSyncRaf = requestAnimationFrame(() => {
+                headerSyncRaf = null;
+
+                const menuWrapper = headerElement.querySelector('.menu-container');
+                if (menuWrapper) {
+                    const iconRect = menuWrapper.getBoundingClientRect();
+                    if (iconRect.width > 0 && iconRect.height > 0) {
+                        const iconWidth = `${iconRect.width}px`;
+                        const iconHeight = `${iconRect.height}px`;
+                        if (headerElement.style.getPropertyValue('--header-icon-size') !== iconWidth) {
+                            headerElement.style.setProperty('--header-icon-size', iconWidth);
+                        }
+                        if (headerElement.style.getPropertyValue('--header-icon-height') !== iconHeight) {
+                            headerElement.style.setProperty('--header-icon-height', iconHeight);
+                        }
+                    }
+                }
+
+                const usernameWrapper = headerElement.querySelector('.username-area');
+                if (usernameWrapper) {
+                    const fieldRect = usernameWrapper.getBoundingClientRect();
+                    if (fieldRect.width > 0) {
+                        const fieldWidth = `${fieldRect.width}px`;
+                        if (headerElement.style.getPropertyValue('--header-field-width') !== fieldWidth) {
+                            headerElement.style.setProperty('--header-field-width', fieldWidth);
+                        }
+                    }
+                }
+
+                const primarySwitcherEl = headerElement.querySelector('.primary-switcher');
+                if (primarySwitcherEl) {
+                    const switcherRect = primarySwitcherEl.getBoundingClientRect();
+                    if (switcherRect.width > 0) {
+                        const switcherWidth = `${switcherRect.width}px`;
+                        if (headerElement.style.getPropertyValue('--header-switcher-width') !== switcherWidth) {
+                            headerElement.style.setProperty('--header-switcher-width', switcherWidth);
+                        }
+                    }
+                }
+            });
+        };
 
         menuButton?.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -55,6 +106,22 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
                 dropdownMenu.classList.add('hidden');
             }
         });
+
+        if (pageType === 'rosters' && headerElement) {
+            syncHeaderSizing();
+            window.addEventListener('resize', syncHeaderSizing);
+            window.addEventListener('orientationchange', syncHeaderSizing);
+            window.addEventListener('load', () => syncHeaderSizing(), { once: true });
+
+            if (document?.fonts?.ready) {
+                document.fonts.ready.then(() => syncHeaderSizing()).catch(() => {});
+            }
+
+            if (typeof ResizeObserver !== 'undefined') {
+                const headerResizeObserver = new ResizeObserver(() => syncHeaderSizing());
+                headerResizeObserver.observe(headerElement);
+            }
+        }
 
         menuRosters?.addEventListener('click', () => {
             const username = usernameInput.value.trim();
@@ -286,13 +353,14 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
                 await fetchAndSetUser(username);
                 const leagues = await fetchUserLeagues(state.userId);
                 state.leagues = leagues.sort((a, b) => a.name.localeCompare(b.name));
-                
+
                 updateButtonStates('rosters');
                 contextualControls.classList.remove('hidden');
+                syncHeaderSizing();
                 playerListView.classList.add('hidden');
                 rosterView.classList.remove('hidden');
                 setRosterView('positional'); // Set default view
-                
+
                 populateLeagueSelect(state.leagues);
 
                 const params = new URLSearchParams(window.location.search);
