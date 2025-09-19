@@ -37,6 +37,13 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
         const playerComparisonModal = document.getElementById('player-comparison-modal');
         const comparisonBackgroundOverlay = document.getElementById('comparison-modal-background-overlay');
 
+        const COMPARE_BUTTON_PREVIEW_HTML = '<span class="button-text">Preview</span>';
+        const COMPARE_BUTTON_SHOW_ALL_HTML = '<span class="icon-label"><i aria-hidden="true" class="fa-solid fa-arrows-left-right-to-line"></i><span class="label">Show All</span></span>';
+
+        if (compareButton) {
+            compareButton.innerHTML = COMPARE_BUTTON_PREVIEW_HTML;
+        }
+
         // --- Menu Button ---
         const menuButton = document.getElementById('menu-button');
         const dropdownMenu = document.getElementById('dropdown-menu');
@@ -489,11 +496,11 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
             }
 
             if (state.isCompareMode) {
-                compareButton.textContent = 'Show All';
+                compareButton.innerHTML = COMPARE_BUTTON_SHOW_ALL_HTML;
                 compareButton.classList.add('active');
                 compareButton.classList.remove('glow-on-select');
             } else {
-                compareButton.textContent = 'Preview';
+                compareButton.innerHTML = COMPARE_BUTTON_PREVIEW_HTML;
                 compareButton.classList.remove('active');
             }
             
