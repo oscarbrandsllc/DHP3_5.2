@@ -488,13 +488,15 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
                 compareButton.classList.remove('glow-on-select');
             }
 
+            compareButton.classList.toggle('show-all', state.isCompareMode);
+
             if (state.isCompareMode) {
-                compareButton.textContent = 'Show All';
                 compareButton.classList.add('active');
                 compareButton.classList.remove('glow-on-select');
+                compareButton.setAttribute('aria-label', 'Show all teams');
             } else {
-                compareButton.textContent = 'Preview';
                 compareButton.classList.remove('active');
+                compareButton.setAttribute('aria-label', 'Preview trade');
             }
             
             if (count < 2 && state.isCompareMode) {
