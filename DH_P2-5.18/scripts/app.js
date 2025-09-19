@@ -37,6 +37,58 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
         const playerComparisonModal = document.getElementById('player-comparison-modal');
         const comparisonBackgroundOverlay = document.getElementById('comparison-modal-background-overlay');
 
+        const COMPARE_BUTTON_PREVIEW_HTML = '<span class="button-text">Preview</span>';
+        const COMPARE_BUTTON_SHOW_ALL_HTML = '<span class="compare-show-all-stack"><i aria-hidden="true" class="fa-solid fa-arrows-left-right-to-line compare-show-all-icon"></i><span class="compare-show-all-label">Show All</span></span>';
+
+        function clearLockedCompareButtonDimensions() {
+            if (!compareButton) return;
+            compareButton.style.removeProperty('width');
+            compareButton.style.removeProperty('height');
+            compareButton.style.removeProperty('--compare-button-width');
+            compareButton.style.removeProperty('--compare-button-height');
+        }
+
+        function applyStoredCompareButtonDimensions() {
+            if (!compareButton) return;
+            const { previewWidth, previewHeight } = compareButton.dataset;
+            if (previewWidth) {
+                compareButton.style.setProperty('--compare-button-width', `${previewWidth}px`);
+                compareButton.style.width = `${previewWidth}px`;
+            }
+            if (previewHeight) {
+                compareButton.style.setProperty('--compare-button-height', `${previewHeight}px`);
+                compareButton.style.height = `${previewHeight}px`;
+            }
+        }
+
+        function measureAndLockCompareButton() {
+            if (!compareButton || compareButton.classList.contains('compare-show-all')) return;
+            clearLockedCompareButtonDimensions();
+            const rect = compareButton.getBoundingClientRect();
+            const width = rect.width;
+            const height = rect.height;
+            compareButton.dataset.previewWidth = `${width}`;
+            compareButton.dataset.previewHeight = `${height}`;
+            applyStoredCompareButtonDimensions();
+        }
+
+        if (compareButton) {
+            compareButton.innerHTML = COMPARE_BUTTON_PREVIEW_HTML;
+            requestAnimationFrame(measureAndLockCompareButton);
+            window.addEventListener('load', () => {
+                if (!compareButton.classList.contains('compare-show-all')) {
+                    measureAndLockCompareButton();
+                }
+            });
+            window.addEventListener('resize', () => {
+                if (!compareButton.classList.contains('compare-show-all')) {
+                    requestAnimationFrame(measureAndLockCompareButton);
+                } else {
+                    applyStoredCompareButtonDimensions();
+                }
+            });
+        }
+
         // --- Menu Button ---
         const menuButton = document.getElementById('menu-button');
         const dropdownMenu = document.getElementById('dropdown-menu');
@@ -127,7 +179,8 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
         const API_BASE = 'https://api.sleeper.app/v1';
         const GOOGLE_SHEET_ID = '1MDTf1IouUIrm4qabQT9E5T0FsJhQtmaX55P32XK5c_0';
         const PLAYER_STATS_SHEET_ID = '1i-cKqSfYw0iFiV9S-wBw8lwZePwXZ7kcaWMdnaMTHDs';
-        const PLAYER_STATS_SHEETS = { season: 'SZN', seasonRanks: 'SZN_RKs', weeks: { 1: 'WK1', 2: 'WK2' } };
+        const DEFAULT_PLAYER_STATS_SHEETS = { season: 'SZN', seasonRanks: 'SZN_RKs', weeks: { 1: 'WK1', 2: 'WK2' } };
+        let resolvedPlayerStatsSheets = null;
         const TAG_COLORS = { QB:"var(--pos-qb)", RB:"var(--pos-rb)", WR:"var(--pos-wr)", TE:"var(--pos-te)", BN:"var(--pos-bn)", TX:"var(--pos-tx)", FLX: "var(--pos-flx)", SFLX: "var(--pos-sflx)" };
         const STARTER_ORDER = ['QB', 'RB', 'WR', 'TE', 'FLEX', 'SUPER_FLEX'];
         const TEAM_COLORS = { ARI:"#97233F", ATL:"#A71930", BAL:"#241773", BUF:"#00338D", CAR:"#0085CA", CHI:"#1a2d4e", CIN:"#FB4F14", CLE:"#311D00", DAL:"#003594", DEN:"#FB4F14", DET:"#0076B6", GB:"#203731", HOU:"#03202F", IND:"#002C5F", JAX:"#006778", KC:"#E31837", LAC:"#0080C6", LAR:"#003594", LV:"#A5ACAF", MIA:"#008E97", MIN:"#4F2683", NE:"#002244", NO:"#D3BC8D", NYG:"#0B2265", NYJ:"#125740", PHI:"#004C54", PIT:"#FFB612", SEA:"#69BE28", SF:"#B3995D", TB:"#D50A0A", TEN:"#4B92DB", WAS:"#5A1414", FA: "#64748b" };
@@ -489,12 +542,16 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
             }
 
             if (state.isCompareMode) {
-                compareButton.textContent = 'Show All';
-                compareButton.classList.add('active');
+                compareButton.innerHTML = COMPARE_BUTTON_SHOW_ALL_HTML;
+                compareButton.classList.add('active', 'compare-show-all');
                 compareButton.classList.remove('glow-on-select');
+                applyStoredCompareButtonDimensions();
             } else {
-                compareButton.textContent = 'Preview';
+                compareButton.innerHTML = COMPARE_BUTTON_PREVIEW_HTML;
                 compareButton.classList.remove('active');
+                compareButton.classList.remove('compare-show-all');
+                applyStoredCompareButtonDimensions();
+                requestAnimationFrame(measureAndLockCompareButton);
             }
             
             if (count < 2 && state.isCompareMode) {
@@ -804,13 +861,79 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
             return dataMap;
         }
 
+        async function fetchWorksheetTitles() {
+            const url = `https://spreadsheets.google.com/feeds/worksheets/${PLAYER_STATS_SHEET_ID}/public/basic?alt=json&v=${Date.now()}`;
+            const response = await fetch(url, { cache: 'no-store' });
+            if (!response.ok) throw new Error(`Worksheet metadata request failed: ${response.status}`);
+            const payload = await response.json();
+            const entries = payload?.feed?.entry || [];
+            return entries
+                .map(entry => entry?.title?.$t)
+                .filter(name => typeof name === 'string' && name.trim().length > 0)
+                .map(name => name.trim());
+        }
+
+        function buildPlayerStatsSheetMap(sheetNames) {
+            if (!Array.isArray(sheetNames) || sheetNames.length === 0) return DEFAULT_PLAYER_STATS_SHEETS;
+
+            const normalizedLookup = new Map();
+            sheetNames.forEach(name => {
+                normalizedLookup.set(name.toUpperCase(), name);
+            });
+
+            const seasonSheet = normalizedLookup.get('SZN') || DEFAULT_PLAYER_STATS_SHEETS.season;
+            const seasonRanksSheet = normalizedLookup.get('SZN_RKS')
+                || normalizedLookup.get('SZN_RANKS')
+                || DEFAULT_PLAYER_STATS_SHEETS.seasonRanks;
+
+            const weeklySheets = {};
+            sheetNames.forEach(name => {
+                const match = /^WK(\d+)$/i.exec(name.replace(/\s+/g, ''));
+                if (match) {
+                    const weekNum = Number.parseInt(match[1], 10);
+                    if (!Number.isNaN(weekNum)) {
+                        weeklySheets[weekNum] = name;
+                    }
+                }
+            });
+
+            const orderedWeeks = Object.keys(weeklySheets)
+                .map(week => Number.parseInt(week, 10))
+                .filter(week => !Number.isNaN(week))
+                .sort((a, b) => a - b)
+                .reduce((acc, week) => {
+                    acc[week] = weeklySheets[week];
+                    return acc;
+                }, {});
+
+            return {
+                season: seasonSheet,
+                seasonRanks: seasonRanksSheet,
+                weeks: Object.keys(orderedWeeks).length > 0 ? orderedWeeks : DEFAULT_PLAYER_STATS_SHEETS.weeks
+            };
+        }
+
+        async function getPlayerStatsSheets() {
+            if (resolvedPlayerStatsSheets) return resolvedPlayerStatsSheets;
+            try {
+                const sheetNames = await fetchWorksheetTitles();
+                resolvedPlayerStatsSheets = buildPlayerStatsSheetMap(sheetNames);
+            } catch (metadataError) {
+                console.warn('Falling back to default stat sheet mapping.', metadataError);
+                resolvedPlayerStatsSheets = DEFAULT_PLAYER_STATS_SHEETS;
+            }
+            return resolvedPlayerStatsSheets;
+        }
+
         async function fetchPlayerStatsSheets() {
             if (state.statsSheetsLoaded) return;
             try {
-                const seasonPromise = fetch(`https://docs.google.com/spreadsheets/d/${PLAYER_STATS_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${PLAYER_STATS_SHEETS.season}`).then(res => res.text());
-                const seasonRanksPromise = fetch(`https://docs.google.com/spreadsheets/d/${PLAYER_STATS_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${PLAYER_STATS_SHEETS.seasonRanks}`).then(res => res.text());
-                const weeklyPromises = Object.entries(PLAYER_STATS_SHEETS.weeks).map(async ([week, sheetName]) => {
-                    const csv = await fetch(`https://docs.google.com/spreadsheets/d/${PLAYER_STATS_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${sheetName}`).then(res => res.text());
+                const sheetMap = await getPlayerStatsSheets();
+                const timestamp = Date.now();
+                const seasonPromise = fetch(`https://docs.google.com/spreadsheets/d/${PLAYER_STATS_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetMap.season)}&_=${timestamp}`, { cache: 'no-store' }).then(res => res.text());
+                const seasonRanksPromise = fetch(`https://docs.google.com/spreadsheets/d/${PLAYER_STATS_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetMap.seasonRanks)}&_=${timestamp}`, { cache: 'no-store' }).then(res => res.text());
+                const weeklyPromises = Object.entries(sheetMap.weeks).map(async ([week, sheetName]) => {
+                    const csv = await fetch(`https://docs.google.com/spreadsheets/d/${PLAYER_STATS_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}&_=${timestamp}`, { cache: 'no-store' }).then(res => res.text());
                     return { week: Number(week), csv };
                 });
 
@@ -1617,12 +1740,7 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
                         }
                     }
                     else if (key === 'first_down_rec_rate') {
-                        if (typeof weekStats.stats[key] === 'number') value = weekStats.stats[key];
-                        else {
-                            const rec_fd = weekStats.stats['rec_fd'] || 0;
-                            const rec = weekStats.stats['rec'] || 0;
-                            value = rec > 0 ? (rec_fd / rec) : 0;
-                        }
+                        value = typeof weekStats.stats[key] === 'number' ? weekStats.stats[key] : null;
                     }
                     else if (key === 'imp_per_g') {
                         if (typeof weekStats.stats[key] === 'number') value = weekStats.stats[key];
@@ -1635,7 +1753,8 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
                     if (value > 0) hasData = true;
 
                     let displayValue;
-                    if (typeof value !== 'number') displayValue = value || '0';
+                    if (value === null || value === undefined || (typeof value === 'string' && value.trim() === '')) displayValue = '';
+                    else if (typeof value !== 'number') displayValue = value;
                     else if (key === 'yco_per_att') displayValue = value.toFixed(2);
                     else if (key === 'mtf_per_att' || key === 'ypc' || key === 'ttt' || key === 'ypr' || key === 'yprr' || key === 'first_down_rec_rate') displayValue = value.toFixed(2);
                     else if (key === 'pass_imp_per_att' || key === 'prs_pct' || key === 'snp_pct' || key === 'ts_per_rr') displayValue = formatPercentage(value);
@@ -1782,13 +1901,10 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
                         }
                         displayValue = Number(value).toFixed(2).replace(/\.00$/, '');
                     } else if (key === 'first_down_rec_rate') {
-                        let value = seasonTotals && typeof seasonTotals.first_down_rec_rate === 'number' ? seasonTotals.first_down_rec_rate : null;
-                        if (value === null) {
-                            const totalRecFd = seasonTotals && typeof seasonTotals.rec_fd === 'number' ? seasonTotals.rec_fd : (aggregatedTotals['rec_fd'] || 0);
-                            const totalRec = seasonTotals && typeof seasonTotals.rec === 'number' ? seasonTotals.rec : (aggregatedTotals['rec'] || 0);
-                            value = totalRec > 0 ? (totalRecFd / totalRec) : 0;
-                        }
-                        displayValue = Number(value).toFixed(2);
+                        const value = seasonTotals && typeof seasonTotals.first_down_rec_rate === 'number'
+                            ? seasonTotals.first_down_rec_rate
+                            : null;
+                        displayValue = value !== null ? Number(value).toFixed(2) : '';
                     } else {
                         const totalValue = seasonTotals && typeof seasonTotals[key] === 'number' ? seasonTotals[key] : (aggregatedTotals[key] || 0);
                         displayValue = Number.isInteger(totalValue) ? String(totalValue) : Number(totalValue || 0).toFixed(2).replace(/\.00$/, '');
@@ -2320,12 +2436,10 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
                                     if (seasonTotals && typeof seasonTotals.first_down_rec_rate === 'number') {
                                         calculatedValue = seasonTotals.first_down_rec_rate;
                                     } else {
-                                        const totalRecFd = seasonTotals && typeof seasonTotals.rec_fd === 'number' ? seasonTotals.rec_fd : (aggregatedTotals['rec_fd'] || 0);
-                                        const totalRec = seasonTotals && typeof seasonTotals.rec === 'number' ? seasonTotals.rec : (aggregatedTotals['rec'] || 0);
-                                        calculatedValue = totalRec > 0 ? (totalRecFd / totalRec) : 0;
+                                        calculatedValue = null;
                                     }
                                 }
-                                displayValue = Number(calculatedValue).toFixed(2);
+                                displayValue = calculatedValue !== null ? Number(calculatedValue).toFixed(2) : '';
                                 break;
                             default:
                                 {
