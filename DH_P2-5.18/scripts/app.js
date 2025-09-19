@@ -37,6 +37,13 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
         const playerComparisonModal = document.getElementById('player-comparison-modal');
         const comparisonBackgroundOverlay = document.getElementById('comparison-modal-background-overlay');
 
+        const COMPARE_BUTTON_PREVIEW_HTML = '<span class="button-text">Preview</span>';
+        const COMPARE_BUTTON_SHOW_ALL_HTML = '<span class="compare-show-all-stack"><i aria-hidden="true" class="fa-solid fa-arrows-left-right-to-line compare-show-all-icon"></i><span class="compare-show-all-label">Show All</span></span>';
+
+        if (compareButton) {
+            compareButton.innerHTML = COMPARE_BUTTON_PREVIEW_HTML;
+        }
+
         // --- Menu Button ---
         const menuButton = document.getElementById('menu-button');
         const dropdownMenu = document.getElementById('dropdown-menu');
@@ -476,6 +483,22 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
             updateHeaderPreviewState();
         }
 
+        function lockCompareButtonSize() {
+            if (!compareButton) return;
+            if (compareButton.style.width && compareButton.style.height) {
+                return;
+            }
+            const rect = compareButton.getBoundingClientRect();
+            compareButton.style.width = `${rect.width}px`;
+            compareButton.style.height = `${rect.height}px`;
+        }
+
+        function unlockCompareButtonSize() {
+            if (!compareButton) return;
+            compareButton.style.width = '';
+            compareButton.style.height = '';
+        }
+
         function updateCompareButtonState() {
             const count = state.teamsToCompare.size;
             compareButton.disabled = count < 2;
@@ -489,12 +512,15 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
             }
 
             if (state.isCompareMode) {
-                compareButton.textContent = 'Show All';
-                compareButton.classList.add('active');
+                lockCompareButtonSize();
+                compareButton.innerHTML = COMPARE_BUTTON_SHOW_ALL_HTML;
+                compareButton.classList.add('active', 'compare-show-all');
                 compareButton.classList.remove('glow-on-select');
             } else {
-                compareButton.textContent = 'Preview';
+                compareButton.innerHTML = COMPARE_BUTTON_PREVIEW_HTML;
                 compareButton.classList.remove('active');
+                compareButton.classList.remove('compare-show-all');
+                unlockCompareButtonSize();
             }
             
             if (count < 2 && state.isCompareMode) {
