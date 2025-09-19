@@ -405,6 +405,11 @@
             color: var(--color-text-secondary);
             text-shadow: 0 0 2px rgba(0,0,0,0.2);
         }
+        .secondary-switcher .icon-control {
+            padding: 0.4rem 0.55rem;
+            min-width: 3.6rem;
+            white-space: normal;
+        }
         .filter-btn {
             padding: 0.15rem 0.6rem;
             font-size: 0.85rem;
@@ -916,6 +921,35 @@
           font-weight: 500;
           line-height: 1;
           color: inherit;
+        }
+
+
+        .icon-control {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 0.125rem;
+          line-height: 1;
+          text-align: center;
+        }
+
+        .icon-control i {
+          display: block;
+          margin: 0;
+          line-height: 1;
+          font-size: 1.05rem;
+        }
+
+        .icon-control .label {
+          display: block;
+          margin: -2px 0 0 0;
+          padding: 0;
+          font-size: 0.55rem;
+          font-weight: 500;
+          line-height: 1;
+          color: inherit;
+          text-transform: none;
         }
         
         
@@ -2170,7 +2204,7 @@ font-weight: 500 !important;
 }
 
 #analyzeLeagueButton {
-    padding: 0.29rem 0.6rem;
+    padding: 0.45rem 0.6rem;
     font-size: 0.8rem;
     font-weight: 500;
     border: 1px solid #cfafcf8a;
@@ -2179,8 +2213,9 @@ font-weight: 500 !important;
     border-radius: 6px;
     cursor: pointer;
     transition: all 0.2s ease;
-    white-space: nowrap;
+    white-space: normal;
     color: #d1b1d1aa;
+    margin-right: auto;
 }
 
 #analyzeLeagueButton.glow-on-select {

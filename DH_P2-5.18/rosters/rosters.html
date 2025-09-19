@@ -55,18 +55,27 @@
 </div>
 </div>
 <div class="hidden" id="contextual-controls">
-<div class="header-row">
-<div class="custom-select-wrapper">
-<select disabled="" id="leagueSelect">
-<option>Select a league...</option>
-</select>
-</div>
-<div class="view-switcher secondary-switcher">
-<button id="positionalViewBtn">Positional</button>
-<button id="depthChartViewBtn">Lineup</button>
-</div>
-<button id="analyzeLeagueButton">Lg. Analyzer</button>
-</div>
+        <div class="header-row">
+          <button id="analyzeLeagueButton" class="icon-control">
+            <i aria-hidden="true" class="fa-solid fa-square-poll-vertical"></i>
+            <span class="label">Lg-Analyzer</span>
+          </button>
+          <div class="custom-select-wrapper">
+            <select disabled="" id="leagueSelect">
+              <option>Select a league...</option>
+            </select>
+          </div>
+          <div class="view-switcher secondary-switcher">
+            <button id="positionalViewBtn" class="icon-control">
+              <i aria-hidden="true" class="fa-duotone fa-solid fa-arrows-turn-to-dots"></i>
+              <span class="label">by position</span>
+            </button>
+            <button id="depthChartViewBtn" class="icon-control">
+              <i aria-hidden="true" class="fa-duotone fa-light fa-clipboard-list"></i>
+              <span class="label">by lineup</span>
+            </button>
+          </div>
+        </div>
 <div class="header-row" id="filters-row">
     <div class="filters-container">
         <div id="positional-filters">
