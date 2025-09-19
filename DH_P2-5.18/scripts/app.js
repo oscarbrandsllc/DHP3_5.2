@@ -37,6 +37,58 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
         const playerComparisonModal = document.getElementById('player-comparison-modal');
         const comparisonBackgroundOverlay = document.getElementById('comparison-modal-background-overlay');
 
+        const COMPARE_BUTTON_PREVIEW_HTML = '<span class="button-text">Preview</span>';
+        const COMPARE_BUTTON_SHOW_ALL_HTML = '<span class="compare-show-all-stack"><i aria-hidden="true" class="fa-solid fa-arrows-left-right-to-line compare-show-all-icon"></i><span class="compare-show-all-label">Show All</span></span>';
+
+        function clearLockedCompareButtonDimensions() {
+            if (!compareButton) return;
+            compareButton.style.removeProperty('width');
+            compareButton.style.removeProperty('height');
+            compareButton.style.removeProperty('--compare-button-width');
+            compareButton.style.removeProperty('--compare-button-height');
+        }
+
+        function applyStoredCompareButtonDimensions() {
+            if (!compareButton) return;
+            const { previewWidth, previewHeight } = compareButton.dataset;
+            if (previewWidth) {
+                compareButton.style.setProperty('--compare-button-width', `${previewWidth}px`);
+                compareButton.style.width = `${previewWidth}px`;
+            }
+            if (previewHeight) {
+                compareButton.style.setProperty('--compare-button-height', `${previewHeight}px`);
+                compareButton.style.height = `${previewHeight}px`;
+            }
+        }
+
+        function measureAndLockCompareButton() {
+            if (!compareButton || compareButton.classList.contains('compare-show-all')) return;
+            clearLockedCompareButtonDimensions();
+            const rect = compareButton.getBoundingClientRect();
+            const width = rect.width;
+            const height = rect.height;
+            compareButton.dataset.previewWidth = `${width}`;
+            compareButton.dataset.previewHeight = `${height}`;
+            applyStoredCompareButtonDimensions();
+        }
+
+        if (compareButton) {
+            compareButton.innerHTML = COMPARE_BUTTON_PREVIEW_HTML;
+            requestAnimationFrame(measureAndLockCompareButton);
+            window.addEventListener('load', () => {
+                if (!compareButton.classList.contains('compare-show-all')) {
+                    measureAndLockCompareButton();
+                }
+            });
+            window.addEventListener('resize', () => {
+                if (!compareButton.classList.contains('compare-show-all')) {
+                    requestAnimationFrame(measureAndLockCompareButton);
+                } else {
+                    applyStoredCompareButtonDimensions();
+                }
+            });
+        }
+
         // --- Menu Button ---
         const menuButton = document.getElementById('menu-button');
         const dropdownMenu = document.getElementById('dropdown-menu');
@@ -489,12 +541,16 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
             }
 
             if (state.isCompareMode) {
-                compareButton.textContent = 'Show All';
-                compareButton.classList.add('active');
+                compareButton.innerHTML = COMPARE_BUTTON_SHOW_ALL_HTML;
+                compareButton.classList.add('active', 'compare-show-all');
                 compareButton.classList.remove('glow-on-select');
+                applyStoredCompareButtonDimensions();
             } else {
-                compareButton.textContent = 'Preview';
+                compareButton.innerHTML = COMPARE_BUTTON_PREVIEW_HTML;
                 compareButton.classList.remove('active');
+                compareButton.classList.remove('compare-show-all');
+                applyStoredCompareButtonDimensions();
+                requestAnimationFrame(measureAndLockCompareButton);
             }
             
             if (count < 2 && state.isCompareMode) {
