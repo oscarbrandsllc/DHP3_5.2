@@ -405,6 +405,22 @@
             color: var(--color-text-secondary);
             text-shadow: 0 0 2px rgba(0,0,0,0.2);
         }
+        .icon-only-switcher {
+            gap: 0.18rem;
+            padding: 0.12rem;
+        }
+        .icon-only-switcher button {
+            padding: 0.2rem 0.45rem;
+            font-size: 1rem;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .icon-only-switcher button i {
+            line-height: 1;
+            font-size: 1rem;
+        }
         .filter-btn {
             padding: 0.15rem 0.6rem;
             font-size: 0.85rem;
@@ -419,6 +435,37 @@
             text-shadow: 0 0 2px rgba(0,0,0,0.2);
         }
 
+        .control-icon-button {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.12rem;
+            padding: 0.3rem 0.55rem;
+            border: 1px solid transparent;
+            background: transparent;
+            border-radius: 6px;
+            color: var(--color-text-secondary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .control-icon-button i {
+            display: block;
+            margin: 0;
+            line-height: 1;
+            font-size: 1rem;
+        }
+        .control-icon-button .label {
+            display: block;
+            margin: -2px 0 0 0;
+            padding: 0;
+            font-size: 0.55rem;
+            font-weight: 500;
+            line-height: 1;
+            color: inherit;
+            text-transform: none;
+        }
+
         
         /* · · Primary buttons are bolder · · */
         .primary-switcher button {
@@ -427,7 +474,7 @@
         }
 
         /* · · Hover States · · */
-        .primary-switcher button:hover, .secondary-switcher button:hover, .filter-btn:hover {
+        .primary-switcher button:hover, .secondary-switcher button:hover, .filter-btn:hover, .control-icon-button:hover {
             color: var(--color-text-primary);
             background: var(--color-panel-bg);
         }
@@ -2179,8 +2226,32 @@ font-weight: 500 !important;
     border-radius: 6px;
     cursor: pointer;
     transition: all 0.2s ease;
-    white-space: nowrap;
+    white-space: normal;
     color: #d1b1d1aa;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.125rem;
+    text-align: center;
+    min-height: 0;
+}
+
+#analyzeLeagueButton i {
+    display: block;
+    margin: 0;
+    line-height: 1;
+    font-size: 1.05rem;
+}
+
+#analyzeLeagueButton .label {
+    display: block;
+    margin: -2px 0 0 0;
+    padding: 0;
+    font-size: 0.55rem;
+    font-weight: 500;
+    line-height: 1;
+    color: inherit;
 }
 
 #analyzeLeagueButton.glow-on-select {
