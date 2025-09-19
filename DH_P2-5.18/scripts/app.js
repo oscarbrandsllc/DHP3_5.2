@@ -37,6 +37,58 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
         const playerComparisonModal = document.getElementById('player-comparison-modal');
         const comparisonBackgroundOverlay = document.getElementById('comparison-modal-background-overlay');
 
+        const COMPARE_BUTTON_PREVIEW_HTML = '<span class="button-text">Preview</span>';
+        const COMPARE_BUTTON_SHOW_ALL_HTML = '<span class="compare-show-all-stack"><i aria-hidden="true" class="fa-solid fa-arrows-left-right-to-line compare-show-all-icon"></i><span class="compare-show-all-label">Show All</span></span>';
+
+        function clearLockedCompareButtonDimensions() {
+            if (!compareButton) return;
+            compareButton.style.removeProperty('width');
+            compareButton.style.removeProperty('height');
+            compareButton.style.removeProperty('--compare-button-width');
+            compareButton.style.removeProperty('--compare-button-height');
+        }
+
+        function applyStoredCompareButtonDimensions() {
+            if (!compareButton) return;
+            const { previewWidth, previewHeight } = compareButton.dataset;
+            if (previewWidth) {
+                compareButton.style.setProperty('--compare-button-width', `${previewWidth}px`);
+                compareButton.style.width = `${previewWidth}px`;
+            }
+            if (previewHeight) {
+                compareButton.style.setProperty('--compare-button-height', `${previewHeight}px`);
+                compareButton.style.height = `${previewHeight}px`;
+            }
+        }
+
+        function measureAndLockCompareButton() {
+            if (!compareButton || compareButton.classList.contains('compare-show-all')) return;
+            clearLockedCompareButtonDimensions();
+            const rect = compareButton.getBoundingClientRect();
+            const width = rect.width;
+            const height = rect.height;
+            compareButton.dataset.previewWidth = `${width}`;
+            compareButton.dataset.previewHeight = `${height}`;
+            applyStoredCompareButtonDimensions();
+        }
+
+        if (compareButton) {
+            compareButton.innerHTML = COMPARE_BUTTON_PREVIEW_HTML;
+            requestAnimationFrame(measureAndLockCompareButton);
+            window.addEventListener('load', () => {
+                if (!compareButton.classList.contains('compare-show-all')) {
+                    measureAndLockCompareButton();
+                }
+            });
+            window.addEventListener('resize', () => {
+                if (!compareButton.classList.contains('compare-show-all')) {
+                    requestAnimationFrame(measureAndLockCompareButton);
+                } else {
+                    applyStoredCompareButtonDimensions();
+                }
+            });
+        }
+
         // --- Menu Button ---
         const menuButton = document.getElementById('menu-button');
         const dropdownMenu = document.getElementById('dropdown-menu');
@@ -127,7 +179,8 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
         const API_BASE = 'https://api.sleeper.app/v1';
         const GOOGLE_SHEET_ID = '1MDTf1IouUIrm4qabQT9E5T0FsJhQtmaX55P32XK5c_0';
         const PLAYER_STATS_SHEET_ID = '1i-cKqSfYw0iFiV9S-wBw8lwZePwXZ7kcaWMdnaMTHDs';
-        const PLAYER_STATS_SHEETS = { season: 'SZN', seasonRanks: 'SZN_RKs', weeks: { 1: 'WK1', 2: 'WK2' } };
+        const PLAYER_STATS_SHEETS = { season: 'SZN', seasonRanks: 'SZN_RKs' };
+        const WEEK_SHEET_PATTERN = /^wk\d+$/i;
         const TAG_COLORS = { QB:"var(--pos-qb)", RB:"var(--pos-rb)", WR:"var(--pos-wr)", TE:"var(--pos-te)", BN:"var(--pos-bn)", TX:"var(--pos-tx)", FLX: "var(--pos-flx)", SFLX: "var(--pos-sflx)" };
         const STARTER_ORDER = ['QB', 'RB', 'WR', 'TE', 'FLEX', 'SUPER_FLEX'];
         const TEAM_COLORS = { ARI:"#97233F", ATL:"#A71930", BAL:"#241773", BUF:"#00338D", CAR:"#0085CA", CHI:"#1a2d4e", CIN:"#FB4F14", CLE:"#311D00", DAL:"#003594", DEN:"#FB4F14", DET:"#0076B6", GB:"#203731", HOU:"#03202F", IND:"#002C5F", JAX:"#006778", KC:"#E31837", LAC:"#0080C6", LAR:"#003594", LV:"#A5ACAF", MIA:"#008E97", MIN:"#4F2683", NE:"#002244", NO:"#D3BC8D", NYG:"#0B2265", NYJ:"#125740", PHI:"#004C54", PIT:"#FFB612", SEA:"#69BE28", SF:"#B3995D", TB:"#D50A0A", TEN:"#4B92DB", WAS:"#5A1414", FA: "#64748b" };
@@ -489,12 +542,16 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
             }
 
             if (state.isCompareMode) {
-                compareButton.textContent = 'Show All';
-                compareButton.classList.add('active');
+                compareButton.innerHTML = COMPARE_BUTTON_SHOW_ALL_HTML;
+                compareButton.classList.add('active', 'compare-show-all');
                 compareButton.classList.remove('glow-on-select');
+                applyStoredCompareButtonDimensions();
             } else {
-                compareButton.textContent = 'Preview';
+                compareButton.innerHTML = COMPARE_BUTTON_PREVIEW_HTML;
                 compareButton.classList.remove('active');
+                compareButton.classList.remove('compare-show-all');
+                applyStoredCompareButtonDimensions();
+                requestAnimationFrame(measureAndLockCompareButton);
             }
             
             if (count < 2 && state.isCompareMode) {
@@ -807,18 +864,24 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
         async function fetchPlayerStatsSheets() {
             if (state.statsSheetsLoaded) return;
             try {
-                const seasonPromise = fetch(`https://docs.google.com/spreadsheets/d/${PLAYER_STATS_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${PLAYER_STATS_SHEETS.season}`).then(res => res.text());
-                const seasonRanksPromise = fetch(`https://docs.google.com/spreadsheets/d/${PLAYER_STATS_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${PLAYER_STATS_SHEETS.seasonRanks}`).then(res => res.text());
-                const weeklyPromises = Object.entries(PLAYER_STATS_SHEETS.weeks).map(async ([week, sheetName]) => {
-                    const csv = await fetch(`https://docs.google.com/spreadsheets/d/${PLAYER_STATS_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${sheetName}`).then(res => res.text());
-                    return { week: Number(week), csv };
-                });
+                const [seasonCsv, seasonRanksCsv, weeklySheetMap] = await Promise.all([
+                    fetchSheetCsv(PLAYER_STATS_SHEET_ID, PLAYER_STATS_SHEETS.season),
+                    fetchSheetCsv(PLAYER_STATS_SHEET_ID, PLAYER_STATS_SHEETS.seasonRanks),
+                    discoverWeeklySheets(PLAYER_STATS_SHEET_ID)
+                ]);
 
-                const [seasonCsv, seasonRanksCsv, ...weeklyCsvs] = await Promise.all([seasonPromise, seasonRanksPromise, ...weeklyPromises]);
+                const weeklyEntries = Object.entries(weeklySheetMap)
+                    .map(([week, sheetName]) => ({ week: Number(week), sheetName }))
+                    .filter(entry => !Number.isNaN(entry.week))
+                    .sort((a, b) => a.week - b.week);
+
+                const weeklyCsvs = await Promise.all(weeklyEntries.map(async ({ week, sheetName }) => {
+                    const csv = await fetchSheetCsv(PLAYER_STATS_SHEET_ID, sheetName);
+                    return { week, csv };
+                }));
 
                 state.playerSeasonStats = parseSeasonStatsCsv(seasonCsv);
                 state.playerSeasonRanks = parseSeasonRanksCsv(seasonRanksCsv);
-                state.seasonRankCache = computeSeasonRankings(state.playerSeasonStats);
                 const weeklyStats = {};
                 weeklyCsvs.forEach(({ week, csv }) => {
                     weeklyStats[week] = parseWeeklyStatsCsv(csv);
@@ -831,9 +894,47 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
                 state.playerSeasonStats = {};
                 state.playerSeasonRanks = {};
                 state.playerWeeklyStats = {};
-                state.seasonRankCache = null;
                 state.statsSheetsLoaded = false;
             }
+        }
+
+        async function fetchWorksheetTitles(sheetId) {
+            try {
+                const response = await fetch(`https://spreadsheets.google.com/feeds/worksheets/${sheetId}/public/basic?alt=json&_=${Date.now()}`);
+                if (!response.ok) throw new Error(`Failed to load worksheet metadata: ${response.status}`);
+                const data = await response.json();
+                const entries = data?.feed?.entry || [];
+                return entries
+                    .map(entry => entry?.title?.$t?.trim())
+                    .filter(Boolean);
+            } catch (error) {
+                console.error('Failed to fetch worksheet titles.', error);
+                return [];
+            }
+        }
+
+        async function discoverWeeklySheets(sheetId) {
+            const titles = await fetchWorksheetTitles(sheetId);
+            const weekMap = {};
+            titles.forEach(title => {
+                if (!title) return;
+                const normalized = title.replace(/\s+/g, '');
+                if (!WEEK_SHEET_PATTERN.test(normalized)) return;
+                const weekMatch = normalized.match(/\d+/);
+                if (!weekMatch) return;
+                const weekNumber = parseInt(weekMatch[0], 10);
+                if (Number.isNaN(weekNumber)) return;
+                weekMap[weekNumber] = title;
+            });
+            return weekMap;
+        }
+
+        async function fetchSheetCsv(sheetId, sheetName) {
+            const response = await fetch(`https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}&_=${Date.now()}`);
+            if (!response.ok) {
+                throw new Error(`Failed to fetch sheet ${sheetName}: ${response.status}`);
+            }
+            return response.text();
         }
 
         const PLAYER_STAT_HEADER_MAP = {
@@ -867,6 +968,8 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
             'rec1D': 'rec_fd',
             'YAC': 'rec_yar',
             'YPR': 'ypr',
+            'FPTS': 'fpts',
+            'FPTS_PPR': 'fpts_ppr',
             'RR': 'rr',
             'TS%RR': 'ts_per_rr',
             'YPRR': 'yprr',
@@ -1005,10 +1108,9 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
 
         function getSeasonRankValue(playerId, statKey) {
             if (statKey === 'fpts') {
-                let posRank = null;
                 const seasonStats = state.playerSeasonStats?.[playerId];
                 if (seasonStats) {
-                    posRank = seasonStats.pos_rank_ppr;
+                    let posRank = seasonStats.pos_rank_ppr;
                     if (typeof posRank === 'string') {
                         const trimmed = posRank.trim();
                         if (trimmed) {
@@ -1023,28 +1125,10 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
                             posRank = null;
                         }
                     }
-                }
-
-                if ((posRank === null || posRank === undefined) && typeof calculatePlayerStatsAndRanks === 'function') {
-                    const ranks = calculatePlayerStatsAndRanks(playerId);
-                    if (ranks && ranks.posRank !== undefined && ranks.posRank !== null) {
-                        if (typeof ranks.posRank === 'number') {
-                            posRank = Number.isNaN(ranks.posRank) ? null : ranks.posRank;
-                        } else {
-                            const rankStr = String(ranks.posRank).trim();
-                            if (rankStr && rankStr.toUpperCase() !== 'NA' && rankStr.toUpperCase() !== 'N/A') {
-                                const parsed = parseFloat(rankStr);
-                                posRank = Number.isNaN(parsed) ? null : parsed;
-                            }
-                        }
+                    if (typeof posRank === 'number' && !Number.isNaN(posRank)) {
+                        return posRank;
                     }
                 }
-
-                if (typeof posRank === 'number' && !Number.isNaN(posRank)) {
-                    return posRank;
-                }
-
-                return null;
             }
 
             const ranks = state.playerSeasonRanks?.[playerId];
@@ -1580,69 +1664,11 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
                 for (const key of orderedStatKeys) {
                     if (!statLabels[key]) continue;
 
-                    let value;
-                    if (key === 'fpts') value = calculateFantasyPoints(weekStats.stats, scoringSettings);
-                    else if (key === 'ypc') value = (weekStats.stats['rush_att'] || 0) > 0 ? ((weekStats.stats['rush_yd'] || 0) / weekStats.stats['rush_att']) : 0;
-                    else if (key === 'yco_per_att') value = (weekStats.stats['rush_att'] || 0) > 0 ? ((weekStats.stats['rush_yac'] || 0) / weekStats.stats['rush_att']) : 0;
-                    else if (key === 'mtf_per_att') value = (weekStats.stats['rush_att'] || 0) > 0 ? ((weekStats.stats['mtf'] || 0) / weekStats.stats['rush_att']) : 0;
-                    else if (key === 'pass_imp_per_att') {
-                        const passImp = weekStats.stats['pass_imp'];
-                        const passAtt = weekStats.stats['pass_att'];
-                        if (typeof weekStats.stats[key] === 'number') value = weekStats.stats[key];
-                        else if (typeof passImp === 'number' && typeof passAtt === 'number' && passAtt > 0) value = (passImp / passAtt) * 100;
-                        else value = 0;
-                    }
-                    else if (key === 'ts_per_rr') {
-                        if (typeof weekStats.stats[key] === 'number') value = weekStats.stats[key];
-                        else {
-                            const routes = weekStats.stats['rr'] || 0;
-                            const targets = weekStats.stats['rec_tgt'] || 0;
-                            value = routes > 0 ? (targets / routes) * 100 : 0;
-                        }
-                    }
-                    else if (key === 'yprr') {
-                        if (typeof weekStats.stats[key] === 'number') value = weekStats.stats[key];
-                        else {
-                            const routes = weekStats.stats['rr'] || 0;
-                            const yards = weekStats.stats['rec_yd'] || 0;
-                            value = routes > 0 ? yards / routes : 0;
-                        }
-                    }
-                    else if (key === 'ypr') {
-                        if (typeof weekStats.stats[key] === 'number') value = weekStats.stats[key];
-                        else {
-                            const receptions = weekStats.stats['rec'] || 0;
-                            const yards = weekStats.stats['rec_yd'] || 0;
-                            value = receptions > 0 ? yards / receptions : 0;
-                        }
-                    }
-                    else if (key === 'first_down_rec_rate') {
-                        if (typeof weekStats.stats[key] === 'number') value = weekStats.stats[key];
-                        else {
-                            const rec_fd = weekStats.stats['rec_fd'] || 0;
-                            const rec = weekStats.stats['rec'] || 0;
-                            value = rec > 0 ? (rec_fd / rec) : 0;
-                        }
-                    }
-                    else if (key === 'imp_per_g') {
-                        if (typeof weekStats.stats[key] === 'number') value = weekStats.stats[key];
-                        else value = weekStats.stats['imp'] || 0;
-                    }
-                    else if (key === 'prs_pct' || key === 'snp_pct') value = typeof weekStats.stats[key] === 'number' ? weekStats.stats[key] : 0;
-                    else if (key === 'ttt') value = typeof weekStats.stats[key] === 'number' ? weekStats.stats[key] : 0;
-                    else value = weekStats.stats[key] || 0;
-
-                    if (value > 0) hasData = true;
-
-                    let displayValue;
-                    if (typeof value !== 'number') displayValue = value || '0';
-                    else if (key === 'yco_per_att') displayValue = value.toFixed(2);
-                    else if (key === 'mtf_per_att' || key === 'ypc' || key === 'ttt' || key === 'ypr' || key === 'yprr' || key === 'first_down_rec_rate') displayValue = value.toFixed(2);
-                    else if (key === 'pass_imp_per_att' || key === 'prs_pct' || key === 'snp_pct' || key === 'ts_per_rr') displayValue = formatPercentage(value);
-                    else displayValue = value.toFixed(2).replace(/\.00$/, '');
+                    const rawValue = weekStats.stats[key];
+                    if (rawValue !== null && rawValue !== undefined) hasData = true;
 
                     const td = document.createElement('td');
-                    td.textContent = displayValue;
+                    td.textContent = formatStatValue(key, rawValue);
                     row.appendChild(td);
                 }
 
@@ -1666,133 +1692,12 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
                 footerRow.appendChild(totalTh);
 
                 const seasonTotals = state.playerSeasonStats?.[player.id] || null;
-                const aggregatedTotals = {};
-                const snapPctValues = [];
-                const statValueCounts = {};
-
-                gameLogsWithData.forEach(weekStats => {
-                    for (const key in weekStats.stats) {
-                        const statValue = parseFloat(weekStats.stats[key]);
-                        if (Number.isNaN(statValue)) continue;
-                        if (key === 'snp_pct') {
-                            snapPctValues.push(statValue);
-                        } else {
-                            aggregatedTotals[key] = (aggregatedTotals[key] || 0) + statValue;
-                        }
-                        statValueCounts[key] = (statValueCounts[key] || 0) + 1;
-                    }
-                });
-
                 for (const key of orderedStatKeys) {
                     if (!statLabels[key]) continue;
 
                     const td = document.createElement('td');
-                    let displayValue;
-
-                    if (key === 'fpts') {
-                        const totalPoints = gameLogsWithData.reduce((sum, week) => sum + calculateFantasyPoints(week.stats, scoringSettings), 0);
-                        displayValue = totalPoints.toFixed(2).replace(/\.00$/, '');
-                    } else if (key === 'ypc') {
-                        const totalYards = seasonTotals && typeof seasonTotals.rush_yd === 'number' ? seasonTotals.rush_yd : (aggregatedTotals['rush_yd'] || 0);
-                        const totalCarries = seasonTotals && typeof seasonTotals.rush_att === 'number' ? seasonTotals.rush_att : (aggregatedTotals['rush_att'] || 0);
-                        const avgYpc = totalCarries > 0 ? totalYards / totalCarries : 0;
-                        displayValue = avgYpc.toFixed(2);
-                    } else if (key === 'yco_per_att') {
-                        const totalYco = seasonTotals && typeof seasonTotals.rush_yac === 'number' ? seasonTotals.rush_yac : (aggregatedTotals['rush_yac'] || 0);
-                        const totalCarries = seasonTotals && typeof seasonTotals.rush_att === 'number' ? seasonTotals.rush_att : (aggregatedTotals['rush_att'] || 0);
-                        const avgYcoPerCar = totalCarries > 0 ? totalYco / totalCarries : 0;
-                        displayValue = avgYcoPerCar.toFixed(2);
-                    } else if (key === 'mtf_per_att') {
-                        const totalMtf = seasonTotals && typeof seasonTotals.mtf === 'number' ? seasonTotals.mtf : (aggregatedTotals['mtf'] || 0);
-                        const totalCarries = seasonTotals && typeof seasonTotals.rush_att === 'number' ? seasonTotals.rush_att : (aggregatedTotals['rush_att'] || 0);
-                        const avgMtfPerAtt = totalCarries > 0 ? totalMtf / totalCarries : 0;
-                        displayValue = avgMtfPerAtt.toFixed(2);
-                    } else if (key === 'pass_rtg') {
-                        if (seasonTotals && typeof seasonTotals.pass_rtg === 'number') {
-                            const rating = seasonTotals.pass_rtg;
-                            displayValue = Number.isInteger(rating) ? String(rating) : rating.toFixed(2).replace(/\.00$/, '');
-                        } else {
-                            const totalPassRtg = aggregatedTotals['pass_rtg'] || 0;
-                            const gamesWithPassAttempts = gameLogsWithData.filter(w => (w.stats['pass_att'] || 0) > 0).length;
-                            const avgPassRtg = gamesWithPassAttempts > 0 ? totalPassRtg / gamesWithPassAttempts : 0;
-                            displayValue = avgPassRtg.toFixed(2).replace(/\.00$/, '');
-                        }
-                    } else if (key === 'pass_imp_per_att') {
-                        let pctValue = seasonTotals && typeof seasonTotals.pass_imp_per_att === 'number' ? seasonTotals.pass_imp_per_att : null;
-                        if (pctValue === null) {
-                            const totalPassImp = seasonTotals && typeof seasonTotals.pass_imp === 'number' ? seasonTotals.pass_imp : (aggregatedTotals['pass_imp'] || 0);
-                            const totalPassAtt = seasonTotals && typeof seasonTotals.pass_att === 'number' ? seasonTotals.pass_att : (aggregatedTotals['pass_att'] || 0);
-                            if (totalPassAtt > 0) pctValue = (totalPassImp / totalPassAtt) * 100;
-                            else if (statValueCounts['pass_imp_per_att']) pctValue = (aggregatedTotals['pass_imp_per_att'] || 0) / statValueCounts['pass_imp_per_att'];
-                            else pctValue = 0;
-                        }
-                        displayValue = formatPercentage(pctValue);
-                    } else if (key === 'ttt') {
-                        let avgTtt = seasonTotals && typeof seasonTotals.ttt === 'number' ? seasonTotals.ttt : null;
-                        if (avgTtt === null) {
-                            const totalTtt = aggregatedTotals['ttt'] || 0;
-                            const count = statValueCounts['ttt'] || 0;
-                            avgTtt = count > 0 ? totalTtt / count : 0;
-                        }
-                        displayValue = Number(avgTtt).toFixed(2).replace(/\.00$/, '');
-                    } else if (key === 'prs_pct') {
-                        let pctValue = seasonTotals && typeof seasonTotals.prs_pct === 'number' ? seasonTotals.prs_pct : null;
-                        if (pctValue === null) {
-                            const total = aggregatedTotals['prs_pct'] || 0;
-                            const count = statValueCounts['prs_pct'] || 0;
-                            pctValue = count > 0 ? total / count : 0;
-                        }
-                        displayValue = formatPercentage(pctValue);
-                    } else if (key === 'snp_pct') {
-                        let pctValue = seasonTotals && typeof seasonTotals.snp_pct === 'number' ? seasonTotals.snp_pct : null;
-                        if (pctValue === null) {
-                            pctValue = snapPctValues.length > 0 ? snapPctValues.reduce((sum, val) => sum + val, 0) / snapPctValues.length : 0;
-                        }
-                        displayValue = formatPercentage(pctValue);
-                    } else if (key === 'imp_per_g') {
-                        let impPerGame = seasonTotals && typeof seasonTotals.imp_per_g === 'number' ? seasonTotals.imp_per_g : null;
-                        if (impPerGame === null) {
-                            const totalImp = seasonTotals && typeof seasonTotals.imp === 'number' ? seasonTotals.imp : (aggregatedTotals['imp'] || 0);
-                            const games = seasonTotals && typeof seasonTotals.games_played === 'number' ? seasonTotals.games_played : gameLogsWithData.length;
-                            impPerGame = games > 0 ? totalImp / games : 0;
-                        }
-                        displayValue = Number(impPerGame).toFixed(2).replace(/\.00$/, '');
-                    } else if (key === 'yprr') {
-                        let value = seasonTotals && typeof seasonTotals.yprr === 'number' ? seasonTotals.yprr : null;
-                        if (value === null) {
-                            const totalRoutes = seasonTotals && typeof seasonTotals.rr === 'number' ? seasonTotals.rr : (aggregatedTotals['rr'] || 0);
-                            const totalRecYds = seasonTotals && typeof seasonTotals.rec_yd === 'number' ? seasonTotals.rec_yd : (aggregatedTotals['rec_yd'] || 0);
-                            value = totalRoutes > 0 ? totalRecYds / totalRoutes : 0;
-                        }
-                        displayValue = Number(value).toFixed(2).replace(/\.00$/, '');
-                    } else if (key === 'ts_per_rr') {
-                        let pctValue = seasonTotals && typeof seasonTotals.ts_per_rr === 'number' ? seasonTotals.ts_per_rr : null;
-                        if (pctValue === null) {
-                            const totalRoutes = seasonTotals && typeof seasonTotals.rr === 'number' ? seasonTotals.rr : (aggregatedTotals['rr'] || 0);
-                            const totalTargets = seasonTotals && typeof seasonTotals.rec_tgt === 'number' ? seasonTotals.rec_tgt : (aggregatedTotals['rec_tgt'] || 0);
-                            pctValue = totalRoutes > 0 ? (totalTargets / totalRoutes) * 100 : 0;
-                        }
-                        displayValue = formatPercentage(pctValue);
-                    } else if (key === 'ypr') {
-                        let value = seasonTotals && typeof seasonTotals.ypr === 'number' ? seasonTotals.ypr : null;
-                        if (value === null) {
-                            const totalReceptions = seasonTotals && typeof seasonTotals.rec === 'number' ? seasonTotals.rec : (aggregatedTotals['rec'] || 0);
-                            const totalRecYds = seasonTotals && typeof seasonTotals.rec_yd === 'number' ? seasonTotals.rec_yd : (aggregatedTotals['rec_yd'] || 0);
-                            value = totalReceptions > 0 ? totalRecYds / totalReceptions : 0;
-                        }
-                        displayValue = Number(value).toFixed(2).replace(/\.00$/, '');
-                    } else if (key === 'first_down_rec_rate') {
-                        let value = seasonTotals && typeof seasonTotals.first_down_rec_rate === 'number' ? seasonTotals.first_down_rec_rate : null;
-                        if (value === null) {
-                            const totalRecFd = seasonTotals && typeof seasonTotals.rec_fd === 'number' ? seasonTotals.rec_fd : (aggregatedTotals['rec_fd'] || 0);
-                            const totalRec = seasonTotals && typeof seasonTotals.rec === 'number' ? seasonTotals.rec : (aggregatedTotals['rec'] || 0);
-                            value = totalRec > 0 ? (totalRecFd / totalRec) : 0;
-                        }
-                        displayValue = Number(value).toFixed(2);
-                    } else {
-                        const totalValue = seasonTotals && typeof seasonTotals[key] === 'number' ? seasonTotals[key] : (aggregatedTotals[key] || 0);
-                        displayValue = Number.isInteger(totalValue) ? String(totalValue) : Number(totalValue || 0).toFixed(2).replace(/\.00$/, '');
-                    }
+                    const statValue = resolveSeasonStatValue(seasonTotals, key);
+                    const displayValue = formatStatValue(key, statValue);
                     const rankValue = getSeasonRankValue(player.id, key);
                     const rankAnnotation = createRankAnnotation(rankValue);
                     td.textContent = displayValue;
@@ -2141,17 +2046,13 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
 
             const orderedStatKeys = [...commonStats, ...userSpecificStats, ...otherSpecificStats];
 
-            const league = state.leagues.find(l => l.league_id === state.currentLeagueId);
-            const scoringSettings = league?.scoring_settings || {};
-
             for (const statKey of orderedStatKeys) {
                 if (statLabels[statKey]) {
                     const row = document.createElement('tr');
                     row.innerHTML = `<td>${statLabels[statKey]}</td>`;
 
-                    let bestValue = -Infinity;
+                    let bestValue = null;
                     let bestValueIndices = [];
-                    const values = [];
                     const displayValues = [];
                     const rankAnnotations = [];
                     let bestRank = Infinity;
@@ -2159,192 +2060,24 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
 
                     for (let i = 0; i < players.length; i++) {
                         const player = players[i];
-                        let calculatedValue;
-                        let displayValue;
-
-                        const seasonTotals = player.seasonStats || state.playerSeasonStats?.[player.id] || null;
-                        const aggregatedTotals = {};
-                        const snapPctValues = [];
-                        const statValueCounts = {};
-
-                        player.gameLogs.forEach(week => {
-                            for (const key in week.stats) {
-                                const numericValue = parseFloat(week.stats[key]);
-                                if (Number.isNaN(numericValue)) continue;
-                                if (key === 'snp_pct') {
-                                    snapPctValues.push(numericValue);
-                                } else {
-                                    aggregatedTotals[key] = (aggregatedTotals[key] || 0) + numericValue;
-                                }
-                                statValueCounts[key] = (statValueCounts[key] || 0) + 1;
-                            }
-                        });
-
-                        switch (statKey) {
-                            case 'fpts':
-                                calculatedValue = player.gameLogs.reduce((sum, week) => sum + calculateFantasyPoints(week.stats, scoringSettings), 0);
-                                displayValue = calculatedValue.toFixed(2).replace(/\.00$/, '');
-                                break;
-                            case 'ypc':
-                                {
-                                    const totalYards = seasonTotals && typeof seasonTotals.rush_yd === 'number' ? seasonTotals.rush_yd : (aggregatedTotals['rush_yd'] || 0);
-                                    const totalCarries = seasonTotals && typeof seasonTotals.rush_att === 'number' ? seasonTotals.rush_att : (aggregatedTotals['rush_att'] || 0);
-                                    calculatedValue = totalCarries > 0 ? totalYards / totalCarries : 0;
-                                }
-                                displayValue = calculatedValue.toFixed(2);
-                                break;
-                            case 'yco_per_att':
-                                {
-                                    const totalYco = seasonTotals && typeof seasonTotals.rush_yac === 'number' ? seasonTotals.rush_yac : (aggregatedTotals['rush_yac'] || 0);
-                                    const totalCarriesYco = seasonTotals && typeof seasonTotals.rush_att === 'number' ? seasonTotals.rush_att : (aggregatedTotals['rush_att'] || 0);
-                                    calculatedValue = totalCarriesYco > 0 ? totalYco / totalCarriesYco : 0;
-                                }
-                                displayValue = calculatedValue.toFixed(2);
-                                break;
-                            case 'mtf_per_att':
-                                {
-                                    const totalMtf = seasonTotals && typeof seasonTotals.mtf === 'number' ? seasonTotals.mtf : (aggregatedTotals['mtf'] || 0);
-                                    const totalCarriesMtf = seasonTotals && typeof seasonTotals.rush_att === 'number' ? seasonTotals.rush_att : (aggregatedTotals['rush_att'] || 0);
-                                    calculatedValue = totalCarriesMtf > 0 ? totalMtf / totalCarriesMtf : 0;
-                                }
-                                displayValue = calculatedValue.toFixed(2);
-                                break;
-                            case 'pass_rtg':
-                                if (seasonTotals && typeof seasonTotals.pass_rtg === 'number') {
-                                    calculatedValue = seasonTotals.pass_rtg;
-                                    displayValue = Number.isInteger(calculatedValue) ? String(calculatedValue) : calculatedValue.toFixed(2).replace(/\.00$/, '');
-                                } else {
-                                    const totalPassRtg = aggregatedTotals['pass_rtg'] || 0;
-                                    const gamesWithPassAttempts = player.gameLogs.filter(w => (w.stats['pass_att'] || 0) > 0).length;
-                                    calculatedValue = gamesWithPassAttempts > 0 ? totalPassRtg / gamesWithPassAttempts : 0;
-                                    displayValue = calculatedValue.toFixed(2).replace(/\.00$/, '');
-                                }
-                                break;
-                            case 'pass_imp_per_att':
-                                {
-                                    if (seasonTotals && typeof seasonTotals.pass_imp_per_att === 'number') {
-                                        calculatedValue = seasonTotals.pass_imp_per_att;
-                                    } else {
-                                        const totalPassImp = seasonTotals && typeof seasonTotals.pass_imp === 'number' ? seasonTotals.pass_imp : (aggregatedTotals['pass_imp'] || 0);
-                                        const totalPassAtt = seasonTotals && typeof seasonTotals.pass_att === 'number' ? seasonTotals.pass_att : (aggregatedTotals['pass_att'] || 0);
-                                        if (totalPassAtt > 0) calculatedValue = (totalPassImp / totalPassAtt) * 100;
-                                        else if (statValueCounts['pass_imp_per_att']) calculatedValue = (aggregatedTotals['pass_imp_per_att'] || 0) / statValueCounts['pass_imp_per_att'];
-                                        else calculatedValue = 0;
-                                    }
-                                }
-                                displayValue = formatPercentage(calculatedValue);
-                                break;
-                            case 'ttt':
-                                {
-                                    if (seasonTotals && typeof seasonTotals.ttt === 'number') {
-                                        calculatedValue = seasonTotals.ttt;
-                                    } else {
-                                        const totalTtt = aggregatedTotals['ttt'] || 0;
-                                        const count = statValueCounts['ttt'] || 0;
-                                        calculatedValue = count > 0 ? totalTtt / count : 0;
-                                    }
-                                }
-                                displayValue = Number(calculatedValue).toFixed(2).replace(/\.00$/, '');
-                                break;
-                            case 'prs_pct':
-                                {
-                                    if (seasonTotals && typeof seasonTotals.prs_pct === 'number') {
-                                        calculatedValue = seasonTotals.prs_pct;
-                                    } else {
-                                        const total = aggregatedTotals['prs_pct'] || 0;
-                                        const count = statValueCounts['prs_pct'] || 0;
-                                        calculatedValue = count > 0 ? total / count : 0;
-                                    }
-                                }
-                                displayValue = formatPercentage(calculatedValue);
-                                break;
-                            case 'snp_pct':
-                                {
-                                    const pct = seasonTotals && typeof seasonTotals.snp_pct === 'number'
-                                        ? seasonTotals.snp_pct
-                                        : (snapPctValues.length > 0 ? snapPctValues.reduce((sum, val) => sum + val, 0) / snapPctValues.length : 0);
-                                    calculatedValue = pct;
-                                    displayValue = formatPercentage(pct);
-                                }
-                                break;
-                            case 'imp_per_g':
-                                {
-                                    if (seasonTotals && typeof seasonTotals.imp_per_g === 'number') {
-                                        calculatedValue = seasonTotals.imp_per_g;
-                                    } else {
-                                        const totalImp = seasonTotals && typeof seasonTotals.imp === 'number' ? seasonTotals.imp : (aggregatedTotals['imp'] || 0);
-                                        const games = seasonTotals && typeof seasonTotals.games_played === 'number' ? seasonTotals.games_played : player.gameLogs.length;
-                                        calculatedValue = games > 0 ? totalImp / games : 0;
-                                    }
-                                }
-                                displayValue = Number(calculatedValue).toFixed(2).replace(/\.00$/, '');
-                                break;
-                            case 'yprr':
-                                {
-                                    if (seasonTotals && typeof seasonTotals.yprr === 'number') {
-                                        calculatedValue = seasonTotals.yprr;
-                                    } else {
-                                        const totalRoutes = seasonTotals && typeof seasonTotals.rr === 'number' ? seasonTotals.rr : (aggregatedTotals['rr'] || 0);
-                                        const totalRecYds = seasonTotals && typeof seasonTotals.rec_yd === 'number' ? seasonTotals.rec_yd : (aggregatedTotals['rec_yd'] || 0);
-                                        calculatedValue = totalRoutes > 0 ? totalRecYds / totalRoutes : 0;
-                                    }
-                                }
-                                displayValue = Number(calculatedValue).toFixed(2).replace(/\.00$/, '');
-                                break;
-                            case 'ts_per_rr':
-                                {
-                                    if (seasonTotals && typeof seasonTotals.ts_per_rr === 'number') {
-                                        calculatedValue = seasonTotals.ts_per_rr;
-                                    } else {
-                                        const totalRoutes = seasonTotals && typeof seasonTotals.rr === 'number' ? seasonTotals.rr : (aggregatedTotals['rr'] || 0);
-                                        const totalTargets = seasonTotals && typeof seasonTotals.rec_tgt === 'number' ? seasonTotals.rec_tgt : (aggregatedTotals['rec_tgt'] || 0);
-                                        calculatedValue = totalRoutes > 0 ? (totalTargets / totalRoutes) * 100 : 0;
-                                    }
-                                }
-                                displayValue = formatPercentage(calculatedValue);
-                                break;
-                            case 'ypr':
-                                {
-                                    if (seasonTotals && typeof seasonTotals.ypr === 'number') {
-                                        calculatedValue = seasonTotals.ypr;
-                                    } else {
-                                        const totalReceptions = seasonTotals && typeof seasonTotals.rec === 'number' ? seasonTotals.rec : (aggregatedTotals['rec'] || 0);
-                                        const totalRecYds = seasonTotals && typeof seasonTotals.rec_yd === 'number' ? seasonTotals.rec_yd : (aggregatedTotals['rec_yd'] || 0);
-                                        calculatedValue = totalReceptions > 0 ? totalRecYds / totalReceptions : 0;
-                                    }
-                                }
-                                displayValue = Number(calculatedValue).toFixed(2).replace(/\.00$/, '');
-                                break;
-                            case 'first_down_rec_rate':
-                                {
-                                    if (seasonTotals && typeof seasonTotals.first_down_rec_rate === 'number') {
-                                        calculatedValue = seasonTotals.first_down_rec_rate;
-                                    } else {
-                                        const totalRecFd = seasonTotals && typeof seasonTotals.rec_fd === 'number' ? seasonTotals.rec_fd : (aggregatedTotals['rec_fd'] || 0);
-                                        const totalRec = seasonTotals && typeof seasonTotals.rec === 'number' ? seasonTotals.rec : (aggregatedTotals['rec'] || 0);
-                                        calculatedValue = totalRec > 0 ? (totalRecFd / totalRec) : 0;
-                                    }
-                                }
-                                displayValue = Number(calculatedValue).toFixed(2);
-                                break;
-                            default:
-                                {
-                                    const totalValue = seasonTotals && typeof seasonTotals[statKey] === 'number' ? seasonTotals[statKey] : (aggregatedTotals[statKey] || 0);
-                                    calculatedValue = totalValue;
-                                    displayValue = Number.isInteger(totalValue) ? String(totalValue) : Number(totalValue || 0).toFixed(2).replace(/\.00$/, '');
-                                }
-                        }
-
                         const playerStatOrder = getStatOrderForPosition(player.pos);
-                        if (!playerStatOrder.includes(statKey)) {
-                            displayValue = 'N/A';
-                            calculatedValue = -1;
+                        const seasonTotals = player.seasonStats || state.playerSeasonStats?.[player.id] || null;
+
+                        let resolvedValue = null;
+                        let displayValue = 'N/A';
+                        let numericValue = null;
+
+                        if (playerStatOrder.includes(statKey)) {
+                            resolvedValue = resolveSeasonStatValue(seasonTotals, statKey);
+                            displayValue = formatStatValue(statKey, resolvedValue);
+                            if (typeof resolvedValue === 'number' && Number.isFinite(resolvedValue)) {
+                                numericValue = resolvedValue;
+                            }
                         }
 
                         const rankValue = getSeasonRankValue(player.id, statKey);
                         const rankAnnotation = createRankAnnotation(rankValue);
 
-                        values.push(calculatedValue);
                         displayValues.push(displayValue);
                         rankAnnotations.push(rankAnnotation);
 
@@ -2357,16 +2090,15 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
                             }
                         }
 
-                        if (typeof calculatedValue === 'number' && Number.isFinite(calculatedValue)) {
-                            if (calculatedValue > bestValue) {
-                                bestValue = calculatedValue;
+                        if (numericValue !== null) {
+                            if (bestValue === null || numericValue > bestValue) {
+                                bestValue = numericValue;
                                 bestValueIndices = [i];
-                            } else if (calculatedValue === bestValue) {
+                            } else if (numericValue === bestValue) {
                                 bestValueIndices.push(i);
                             }
                         }
                     }
-
                     const useRankHighlight = bestRankIndices.length > 0;
 
                     displayValues.forEach((val, i) => {
@@ -3035,9 +2767,13 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
             return colors[position] || 'var(--color-text-secondary)';
         }
         function calculateFantasyPoints(stats, scoringSettings) {
-            let totalPoints = 0;
             if (!stats || !scoringSettings) return 0;
 
+            if (typeof stats.fpts === 'number' && Number.isFinite(stats.fpts)) {
+                return stats.fpts;
+            }
+
+            let totalPoints = 0;
             for (const statKey in stats) {
                 if (scoringSettings[statKey]) {
                     totalPoints += stats[statKey] * scoringSettings[statKey];
@@ -3047,15 +2783,47 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
         }
 
         function formatPercentage(value, decimals = 1) {
-            if (value === null || value === undefined || Number.isNaN(value)) return '0%';
+            if (value === null || value === undefined || value === '') return '';
             const numericValue = Number(value);
-            if (Number.isNaN(numericValue)) return '0%';
+            if (Number.isNaN(numericValue)) return '';
             const fixed = numericValue.toFixed(decimals);
             let trimmed = fixed;
             if (trimmed.includes('.')) {
                 trimmed = trimmed.replace(/0+$/, '').replace(/\.$/, '');
             }
             return `${trimmed}%`;
+        }
+
+        function formatStatValue(statKey, value) {
+            if (value === null || value === undefined) return '';
+            if (typeof value !== 'number') {
+                return String(value);
+            }
+
+            const percentageKeys = new Set(['pass_imp_per_att', 'prs_pct', 'snp_pct', 'ts_per_rr']);
+            if (percentageKeys.has(statKey)) {
+                return formatPercentage(value);
+            }
+
+            const decimalKeys = new Set(['yco_per_att', 'mtf_per_att', 'ypc', 'ttt', 'ypr', 'yprr', 'first_down_rec_rate', 'imp_per_g']);
+            if (decimalKeys.has(statKey) || statKey === 'fpts') {
+                return value.toFixed(2).replace(/\.00$/, '');
+            }
+
+            return Number.isInteger(value) ? String(value) : value.toFixed(2).replace(/\.00$/, '');
+        }
+
+        function resolveSeasonStatValue(seasonTotals, statKey) {
+            if (!seasonTotals || typeof seasonTotals !== 'object') return null;
+
+            if (statKey === 'fpts') {
+                if (typeof seasonTotals.fpts === 'number') return seasonTotals.fpts;
+                if (typeof seasonTotals.fpts_ppr === 'number') return seasonTotals.fpts_ppr;
+                return null;
+            }
+
+            const value = seasonTotals[statKey];
+            return typeof value === 'number' ? value : null;
         }
 
         function getRankColor(rank) {
