@@ -37,6 +37,64 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
         const playerComparisonModal = document.getElementById('player-comparison-modal');
         const comparisonBackgroundOverlay = document.getElementById('comparison-modal-background-overlay');
 
+        const COMPARE_BUTTON_PREVIEW_HTML = '<span class="button-text">Preview</span>';
+        const COMPARE_BUTTON_SHOW_ALL_HTML = '<span class="compare-show-all-stack"><i aria-hidden="true" class="fa-solid fa-arrows-left-right-to-line compare-show-all-icon"></i><span class="compare-show-all-label">Show All</span></span>';
+
+        let compareButtonLockWidth = null;
+        let compareButtonLockHeight = null;
+        let compareButtonResizeRaf = null;
+
+        function lockCompareButtonDimensions() {
+            if (!compareButton || !compareButton.isConnected) return;
+
+            const wasShowAll = compareButton.classList.contains('compare-show-all');
+            const previousVisibility = compareButton.style.visibility;
+
+            if (wasShowAll) {
+                compareButton.classList.remove('compare-show-all');
+            }
+
+            compareButton.style.visibility = 'hidden';
+            compareButton.innerHTML = COMPARE_BUTTON_PREVIEW_HTML;
+            compareButton.style.width = '';
+            compareButton.style.height = '';
+
+            compareButtonLockWidth = compareButton.offsetWidth;
+            compareButtonLockHeight = compareButton.offsetHeight;
+
+            if (compareButtonLockWidth) {
+                compareButton.style.width = `${compareButtonLockWidth}px`;
+            }
+            if (compareButtonLockHeight) {
+                compareButton.style.height = `${compareButtonLockHeight}px`;
+            }
+
+            if (wasShowAll) {
+                compareButton.innerHTML = COMPARE_BUTTON_SHOW_ALL_HTML;
+                compareButton.classList.add('compare-show-all');
+            }
+
+            compareButton.style.visibility = previousVisibility;
+        }
+
+        if (compareButton) {
+            compareButton.innerHTML = COMPARE_BUTTON_PREVIEW_HTML;
+            requestAnimationFrame(lockCompareButtonDimensions);
+            if (document?.fonts?.ready) {
+                document.fonts.ready.then(() => {
+                    lockCompareButtonDimensions();
+                }).catch(() => {});
+            }
+            window.addEventListener('resize', () => {
+                if (compareButtonResizeRaf) {
+                    cancelAnimationFrame(compareButtonResizeRaf);
+                }
+                compareButtonResizeRaf = requestAnimationFrame(() => {
+                    lockCompareButtonDimensions();
+                });
+            });
+        }
+
         // --- Menu Button ---
         const menuButton = document.getElementById('menu-button');
         const dropdownMenu = document.getElementById('dropdown-menu');
@@ -489,14 +547,17 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
             }
 
             if (state.isCompareMode) {
-                compareButton.textContent = 'Show All';
-                compareButton.classList.add('active');
+                compareButton.innerHTML = COMPARE_BUTTON_SHOW_ALL_HTML;
+                compareButton.classList.add('active', 'compare-show-all');
                 compareButton.classList.remove('glow-on-select');
             } else {
-                compareButton.textContent = 'Preview';
+                compareButton.innerHTML = COMPARE_BUTTON_PREVIEW_HTML;
                 compareButton.classList.remove('active');
+                compareButton.classList.remove('compare-show-all');
             }
-            
+
+            lockCompareButtonDimensions();
+
             if (count < 2 && state.isCompareMode) {
                 handleCompareClick(); // Automatically exit compare mode
             }
