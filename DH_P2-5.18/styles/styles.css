@@ -308,7 +308,7 @@
             position: relative;
             flex-grow: 1;
             min-width: 100px;
-            max-width: 120px;
+            max-width: 160px;
         }
         #leagueSelect {
             appearance: none;  /* EDITED: Increased transparency */
@@ -318,8 +318,8 @@
             -webkit-backdrop-filter: blur(4px) saturate(110%);
             backdrop-filter: blur(4px) saturate(110%);
             box-shadow: inset 0 1px 1px rgba(255,255,255,0.05);           
-            padding: 0.45rem 1.5rem 0.45rem 0.5rem;
-            font-size: 0.7rem;
+            padding: 0.23rem 1.5rem 0.23rem 0.5rem;
+            font-size: 0.9rem;
             color: #c4c8ea;
             width: 100%;
             cursor: pointer;
@@ -392,9 +392,9 @@
             color: var(--color-text-secondary);
             text-shadow: 0 0 2px rgba(0,0,0,0.2);
         }
-        .secondary-switcher button, .filter-btn {
+        .secondary-switcher button {
             padding: 0.15rem 0.6rem;
-            font-size: 0.85rem;
+            font-size: 0.9rem;
             font-weight: 400;
             border: 1px solid transparent;
             background: transparent;
@@ -2170,38 +2170,42 @@ font-weight: 500 !important;
 }
 
 #analyzeLeagueButton {
-    padding: 0.29rem 0.6rem;
-    font-size: 0.8rem;
-    font-weight: 500;
-    border: 1px solid #cfafcf8a;
-    background: linear-gradient(to bottom, rgba(0,0,0,0.02), rgba(0,0,0,0.2))!important;
-    box-shadow: 0 0 9px #eeddff65;
-    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.125rem;
+    background: transparent;
+    border: none;
+    color: var(--color-text-secondary);
+    font-size: 1rem;
+    line-height: 1;
+    padding: 0.25rem;
     cursor: pointer;
-    transition: all 0.2s ease;
-    white-space: nowrap;
-    color: #d1b1d1aa;
+    transition: all 0.2s;
+    border-radius: 6px;
+    min-height: 0;
 }
 
-#analyzeLeagueButton.glow-on-select {
-    box-shadow: 0 0 8px #7300ff;
-    color: #eeeeee;
-    border: 1px solid #4E00DA;
+#analyzeLeagueButton:hover {
+    color: var(--color-text-primary);
 }
 
-#analyzeLeagueButton.active {
-    color: #ffffff;
-    border: 1px solid #a300ff;
-    background: #7300ff39;
-    box-shadow: 0 0 10px #7300ff;
+#analyzeLeagueButton i {
+    display: block;
+    margin: 0;
+    line-height: 1;
+    font-size: 1.25rem; /* Made slightly larger to match hamburger */
 }
 
-#analyzeLeagueButton:disabled {
-    background: linear-gradient(to bottom, rgba(0,0,0,0.01), rgba(0,0,0,0.1))!important;
-    box-shadow: inset 0 1px 2px rgba(200,200,200,0.08) !important;
-    color: var(--color-text-tertiary) !important;
-    cursor: not-allowed;
-    border-color: var(--color-panel-border) !important;
+#analyzeLeagueButton .label {
+    display: block;
+    margin: -2px 0 0 0;
+    padding: 0;
+    font-size: 0.55rem;
+    font-weight: 500;
+    line-height: 1;
+    color: inherit;
 }
 
 
