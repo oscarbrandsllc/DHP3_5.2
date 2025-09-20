@@ -50,6 +50,7 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
         const menuRosters = document.getElementById('menu-rosters');
         const menuOwnership = document.getElementById('menu-ownership');
         const menuAnalyzer = document.getElementById('menu-analyzer');
+        const menuSyop = document.getElementById('menu-syop');
         const analyzeLeagueButton = document.getElementById('analyzeLeagueButton');
 
         menuButton?.addEventListener('click', (e) => {
@@ -123,6 +124,20 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
             dropdownMenu.classList.add('hidden');
         });
 
+        menuSyop?.addEventListener('click', () => {
+            if (pageType === 'syop') {
+                dropdownMenu.classList.add('hidden');
+                return;
+            }
+            const username = usernameInput.value.trim();
+            let url = pageType === 'welcome' ? 'syop/syop.html' : '../syop/syop.html';
+            if (username) {
+                url += `?username=${encodeURIComponent(username)}`;
+            }
+            window.location.href = url;
+            dropdownMenu.classList.add('hidden');
+        });
+
         // --- State ---
         let state = { userId: null, leagues: [], players: {}, oneQbData: {}, sflxData: {}, currentLeagueId: null, isSuperflex: false, cache: {}, teamsToCompare: new Set(), isCompareMode: false, currentRosterView: 'positional', activePositions: new Set(), tradeBlock: {}, isTradeCollapsed: false, weeklyStats: {}, playerSeasonStats: {}, playerSeasonRanks: {}, playerWeeklyStats: {}, statsSheetsLoaded: false, seasonRankCache: null, isGameLogModalOpenFromComparison: false };
         const assignedLeagueColors = new Map();
@@ -160,6 +175,17 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
                 const username = usernameInput.value.trim();
                 if (!username) return;
                 window.location.href = `ownership/ownership.html?username=${encodeURIComponent(username)}`;
+            });
+        } else if (pageType === 'syop') {
+            fetchRostersButton?.addEventListener('click', () => {
+                const username = usernameInput.value.trim();
+                if (!username) return;
+                window.location.href = `../rosters/rosters.html?username=${encodeURIComponent(username)}`;
+            });
+            fetchOwnershipButton?.addEventListener('click', () => {
+                const username = usernameInput.value.trim();
+                if (!username) return;
+                window.location.href = `../ownership/ownership.html?username=${encodeURIComponent(username)}`;
             });
         } else if (pageType === 'rosters') {
             fetchRostersButton?.addEventListener('click', handleFetchRosters);
