@@ -18,6 +18,7 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
         const rosterGrid = document.getElementById('rosterGrid');
         const compareButton = document.getElementById('compareButton');
         const clearCompareButton = document.getElementById('clearCompareButton');
+        const researchButton = document.getElementById('openSyopPageButton');
         const positionalViewBtn = document.getElementById('positionalViewBtn');
         const depthChartViewBtn = document.getElementById('depthChartViewBtn');
         const viewControls = document.getElementById('view-controls');
@@ -50,6 +51,7 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
         const menuRosters = document.getElementById('menu-rosters');
         const menuOwnership = document.getElementById('menu-ownership');
         const menuAnalyzer = document.getElementById('menu-analyzer');
+        const menuSyop = document.getElementById('menu-syop');
         const analyzeLeagueButton = document.getElementById('analyzeLeagueButton');
 
         menuButton?.addEventListener('click', (e) => {
@@ -123,6 +125,30 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
             dropdownMenu.classList.add('hidden');
         });
 
+        menuSyop?.addEventListener('click', () => {
+            if (pageType === 'syop') {
+                dropdownMenu.classList.add('hidden');
+                return;
+            }
+            const username = usernameInput.value.trim();
+            const suffix = username ? `?username=${encodeURIComponent(username)}` : '';
+            let url;
+            if (pageType === 'welcome') {
+                url = `syop/syop.html${suffix}`;
+            } else {
+                url = `../syop/syop.html${suffix}`;
+            }
+            window.location.href = url;
+            dropdownMenu.classList.add('hidden');
+        });
+
+        researchButton?.addEventListener('click', () => {
+            const username = usernameInput.value.trim();
+            const suffix = username ? `?username=${encodeURIComponent(username)}` : '';
+            const url = pageType === 'welcome' ? `syop/syop.html${suffix}` : `../syop/syop.html${suffix}`;
+            window.location.href = url;
+        });
+
         // --- State ---
         let state = { userId: null, leagues: [], players: {}, oneQbData: {}, sflxData: {}, currentLeagueId: null, isSuperflex: false, cache: {}, teamsToCompare: new Set(), isCompareMode: false, currentRosterView: 'positional', activePositions: new Set(), tradeBlock: {}, isTradeCollapsed: false, weeklyStats: {}, playerSeasonStats: {}, playerSeasonRanks: {}, playerWeeklyStats: {}, statsSheetsLoaded: false, seasonRankCache: null, isGameLogModalOpenFromComparison: false };
         const assignedLeagueColors = new Map();
@@ -160,6 +186,17 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
                 const username = usernameInput.value.trim();
                 if (!username) return;
                 window.location.href = `ownership/ownership.html?username=${encodeURIComponent(username)}`;
+            });
+        } else if (pageType === 'syop') {
+            fetchRostersButton?.addEventListener('click', () => {
+                const username = usernameInput.value.trim();
+                if (!username) return;
+                window.location.href = `../rosters/rosters.html?username=${encodeURIComponent(username)}`;
+            });
+            fetchOwnershipButton?.addEventListener('click', () => {
+                const username = usernameInput.value.trim();
+                if (!username) return;
+                window.location.href = `../ownership/ownership.html?username=${encodeURIComponent(username)}`;
             });
         } else if (pageType === 'rosters') {
             fetchRostersButton?.addEventListener('click', handleFetchRosters);
@@ -239,6 +276,14 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
         // --- Initialization ---
         document.addEventListener('DOMContentLoaded', async () => {
             if (pageType === 'analyzer') return;
+            if (pageType === 'syop') {
+                const params = new URLSearchParams(window.location.search);
+                const uname = params.get('username');
+                if (uname) {
+                    usernameInput.value = uname;
+                }
+                return;
+            }
             setLoading(true, 'Loading initial data...');
             await Promise.all([ fetchSleeperPlayers(), fetchDataFromGoogleSheet(), fetchPlayerStatsSheets() ]);
             setLoading(false);
@@ -500,10 +545,11 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
         }
 
         function updateCompareButtonState() {
+            if (!compareButton) return;
             const count = state.teamsToCompare.size;
             compareButton.disabled = count < 2;
-            clearCompareButton.classList.toggle('hidden', count === 0);
-            clearCompareButton.classList.toggle('active', count > 1);
+            clearCompareButton?.classList.toggle('hidden', count === 0);
+            clearCompareButton?.classList.toggle('active', count > 1);
 
             if (count > 1) {
                 compareButton.classList.add('glow-on-select');
