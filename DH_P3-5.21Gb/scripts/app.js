@@ -50,6 +50,7 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
         const menuRosters = document.getElementById('menu-rosters');
         const menuOwnership = document.getElementById('menu-ownership');
         const menuAnalyzer = document.getElementById('menu-analyzer');
+        const menuSyop = document.getElementById('menu-syop');
         const analyzeLeagueButton = document.getElementById('analyzeLeagueButton');
 
         menuButton?.addEventListener('click', (e) => {
@@ -94,6 +95,12 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
                 url += `&leagueId=${selected}`;
             }
             window.location.href = url;
+            dropdownMenu.classList.add('hidden');
+        });
+
+        menuSyop?.addEventListener('click', () => {
+            const baseUrl = pageType === 'welcome' ? 'syop/syop.html' : '../syop/syop.html';
+            window.location.href = baseUrl;
             dropdownMenu.classList.add('hidden');
         });
 
