@@ -545,7 +545,7 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
         function updateCompareButtonState() {
             const count = state.teamsToCompare.size;
             clearCompareButton?.classList.toggle('hidden', count === 0);
-            clearCompareButton?.classList.toggle('active', count > 1);
+            clearCompareButton?.classList.toggle('active', count > 0);
 
             if (!compareButton) {
                 if (count < 2 && state.isCompareMode) {
