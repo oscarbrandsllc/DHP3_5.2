@@ -68,29 +68,8 @@
           <div class="syop-hero-intro">
             <div class="syop-pill">Dynasty Hub Research</div>
             <h1>Significant Years of Production (SYOP)</h1>
-            <p>
-              Career longevity, positional share, and hit-rate trends distilled into a unified dashboard.
-            </p>
           </div>
           <div class="syop-hero-summary">
-            <div class="syop-key-grid">
-              <div class="syop-hero-card">
-                <span class="label">SYOP [S]</span>
-                <span class="value">Significant Year(s) of Production</span>
-              </div>
-              <div class="syop-hero-card">
-                <span class="label">BoA [B]</span>
-                <span class="value">Breakout &mdash; player&rsquo;s initial SYOP</span>
-              </div>
-              <div class="syop-hero-card">
-                <span class="label">Mean [Λ]</span>
-                <span class="value">Average qualifying production span</span>
-              </div>
-              <div class="syop-hero-card">
-                <span class="label">Mode [M]</span>
-                <span class="value">Most frequent season count</span>
-              </div>
-            </div>
             <div class="syop-hero-meta">
               <div class="syop-hero-meta-item">
                 <span class="meta-label">Sample</span>
@@ -103,6 +82,10 @@
               <div class="syop-hero-meta-item">
                 <span class="meta-label">Benchmarks</span>
                 <span class="meta-value">QB ≥ 179 &bull; RB ≥ 182 &bull; WR ≥ 176 &bull; TE ≥ 161</span>
+              </div>
+              <div class="syop-hero-meta-item">
+                <span class="meta-label"></span>
+                <span class="meta-value">Derived from average minimum QB2, RB2, WR2, TE1 PPR production.</span>
               </div>
             </div>
           </div>
@@ -125,12 +108,29 @@
               <p>(% of position within each SYOP bucket)</p>
             </header>
             <div class="syop-panel-body">
-              <div class="syop-bar-controls" id="syop-bar-controls"></div>
               <div class="syop-chart" id="syop-bar-chart" role="img" aria-label="SYOP positional distribution chart"></div>
             </div>
           </article>
         </div>
         <div class="syop-panel syop-gauges" id="syop-gauges" aria-label="Average SYOP gauges"></div>
+        <div class="syop-key-grid">
+          <div class="syop-hero-card">
+            <span class="label">SYOP [S]</span>
+            <span class="value">Significant Year(s) of Production</span>
+          </div>
+          <div class="syop-hero-card">
+            <span class="label">BoA [B]</span>
+            <span class="value">Breakout &mdash; player&rsquo;s initial SYOP</span>
+          </div>
+          <div class="syop-hero-card">
+            <span class="label">Mean [Λ]</span>
+            <span class="value">Average qualifying production span</span>
+          </div>
+          <div class="syop-hero-card">
+            <span class="label">Mode [M]</span>
+            <span class="value">Most frequent season count</span>
+          </div>
+        </div>
         <p class="syop-footnote">Data sourced from Dynasty Hub SYOP research feeds. Visualization rebuilt for the League HQ experience.</p>
       </section>
 

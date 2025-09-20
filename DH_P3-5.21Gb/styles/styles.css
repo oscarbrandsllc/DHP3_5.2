@@ -298,7 +298,7 @@
             font-size: 1.2rem;
         }
 
-        #secondary-header-row .analyzer-button .analyzer-label {
+        #secondary-header-row .analyzer-button .analyzer-label, #secondary-header-row .research-button .analyzer-label {
             display: block;
             margin: -2px 0 0 0;
             padding: 0;
@@ -307,9 +307,37 @@
             line-height: 1;
             color: inherit;
         }
+
+        #secondary-header-row .research-button {
+            border: none;
+            background: transparent;
+            color: var(--color-text-secondary);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            gap: 0.1rem;
+            text-decoration: none;
+        }
+
+        #secondary-header-row .research-button .analyzer-icon {
+            display: block;
+            margin: 0;
+            line-height: 1;
+            font-size: 1.2rem;
+        }
         #secondary-header-row .analyzer-button:hover .analyzer-icon,
-        #secondary-header-row .analyzer-button:focus-visible .analyzer-icon {
+        #secondary-header-row .analyzer-button:focus-visible .analyzer-icon,
+        #secondary-header-row .research-button:hover .analyzer-icon,
+        #secondary-header-row .research-button:focus-visible .analyzer-icon {
             color: var(--color-text-primary);
+        }
+
+        #secondary-header-row .analyzer-button-container {
+            display: flex;
+            gap: 0.5rem;
+            order: -1;
         }
 
         #primary-header-row .username-area,
@@ -4146,8 +4174,8 @@ body[data-page="syop"] .app-header {
 }
 
 .syop-hero h1 {
-  font-size: clamp(2rem, 1.6rem + 1.6vw, 2.75rem);
-  margin: 0.5rem 0;
+  font-size: clamp(1.5rem, 1.2rem + 1.2vw, 2.25rem);
+  margin: 0.25rem 0;
   letter-spacing: -0.02em;
 }
 
@@ -4244,11 +4272,15 @@ body[data-page="syop"] .app-header {
   align-self: stretch;
   justify-content: center;
   gap: 0.35rem;
-  padding: 0.25rem;
+  padding: 0.1rem;
   border-radius: 12px;
   background: rgba(12, 15, 28, 0.72);
   border: 1px solid rgba(132, 146, 255, 0.16);
   box-shadow: 0 10px 20px rgba(5, 8, 16, 0.42);
+}
+
+.syop-key-grid {
+  margin-top: 1rem;
 }
 
 .syop-tab {

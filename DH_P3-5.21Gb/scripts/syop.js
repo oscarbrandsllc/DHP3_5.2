@@ -211,7 +211,7 @@
     const root = sunburstNodeById.get('root');
     const ring1Nodes = childrenOf(root?.id || 'root');
     const ring1Total = ring1Nodes.reduce((sum, node) => sum + node.value, 0) || 1;
-    const baseSize = 520;
+    const baseSize = 420;
     const containerWidth = container.clientWidth || baseSize;
     const constrained = Math.max(320, containerWidth);
     const size = Math.min(baseSize, constrained);
@@ -276,7 +276,7 @@
         fill: colors.text,
         'text-anchor': 'middle',
         'dominant-baseline': 'middle',
-        'font-size': fontSize(20, 14),
+        'font-size': fontSize(24, 18),
         'font-weight': '800',
         'paint-order': 'stroke',
         stroke: textStroke,
@@ -286,8 +286,8 @@
       if (segment.node.subtitle) {
         const subtitle = createSVG('tspan', {
           x: pos.x,
-          dy: `${17 * scale}`,
-          'font-size': fontSize(13, 12),
+          dy: `${20 * scale}`,
+          'font-size': fontSize(16, 14),
           'font-weight': '600',
           fill: colors.subtext
         }, document.createTextNode(segment.node.subtitle));
@@ -315,7 +315,7 @@
         fill: colors.text,
         'text-anchor': 'middle',
         'dominant-baseline': 'middle',
-        'font-size': fontSize(17, 12),
+        'font-size': fontSize(20, 16),
         'font-weight': '700',
         'paint-order': 'stroke',
         stroke: textStroke,
@@ -326,8 +326,8 @@
       if (stat) {
         label.appendChild(createSVG('tspan', {
           x: center.x,
-          dy: `${15 * scale}`,
-          'font-size': fontSize(13, 11),
+          dy: `${18 * scale}`,
+          'font-size': fontSize(15, 13),
           'font-weight': '600',
           fill: colors.subtext
         }, document.createTextNode(`${stat} yrs`)));
@@ -349,7 +349,7 @@
       x: cx,
       y: cy - 20 * scale,
       fill: colors.text,
-      'font-size': fontSize(20, 15),
+      'font-size': fontSize(24, 18),
       'font-weight': '800',
       'text-anchor': 'middle',
       'paint-order': 'stroke',
@@ -362,7 +362,7 @@
       x: cx,
       y: cy + 4 * scale,
       fill: colors.text,
-      'font-size': fontSize(20, 15),
+      'font-size': fontSize(24, 18),
       'font-weight': '800',
       'text-anchor': 'middle',
       'paint-order': 'stroke',
@@ -374,9 +374,9 @@
     if (root?.subtitle) {
       svg.appendChild(createSVG('text', {
         x: cx,
-        y: cy + 26 * scale,
+        y: cy + 30 * scale,
         fill: colors.subtext,
-        'font-size': fontSize(12, 11),
+        'font-size': fontSize(16, 14),
         'font-weight': '600',
         'text-anchor': 'middle'
       }, document.createTextNode(root.subtitle)));
@@ -386,65 +386,29 @@
     container.appendChild(svg);
   }
 
-  function setupBarControls() {
-    const controls = document.getElementById('syop-bar-controls');
-    if (!controls) return;
-    controls.innerHTML = '';
-
-    controls.appendChild(createEl('span', { class: 'syop-filter-label' }, 'Filter out:'));
-
-    SERIES_CONFIG.forEach((series) => {
-      const input = createEl('input', { type: 'checkbox', checked: true });
-      input.addEventListener('change', () => {
-        barState.show[series.key] = input.checked;
-        renderBarChart();
-      });
-      const toggle = createEl('label', { class: 'syop-toggle' },
-        createEl('span', { class: 'swatch', style: { backgroundColor: series.color } }),
-        input,
-        createEl('span', { class: 'slider', 'aria-hidden': 'true' }),
-        createEl('span', { class: 'toggle-label' }, series.label)
-      );
-      controls.appendChild(toggle);
-    });
-
-    const stackedInput = createEl('input', { type: 'checkbox' });
-    stackedInput.addEventListener('change', () => {
-      barState.stacked = stackedInput.checked;
-      renderBarChart();
-    });
-    const stackedToggle = createEl('label', { class: 'syop-toggle syop-toggle--stacked' },
-      createEl('span', { class: 'swatch stacked', style: { backgroundColor: colors.muted } }),
-      stackedInput,
-      createEl('span', { class: 'slider', 'aria-hidden': 'true' }),
-      createEl('span', { class: 'toggle-label' }, 'Stacked')
-    );
-    controls.appendChild(createEl('div', { class: 'syop-toggle-spacer' }));
-    controls.appendChild(stackedToggle);
-  }
-
-  function renderBarChart() {
+  function renderSyopLineChart() {
     const container = document.getElementById('syop-bar-chart');
     if (!container) return;
     container.innerHTML = '';
 
-    const activeSeries = SERIES_CONFIG.filter((series) => barState.show[series.key]);
-
-    if (activeSeries.length === 0) {
-      container.appendChild(createEl('p', { class: 'syop-empty-state' }, 'Enable at least one position to display the chart.'));
-      return;
-    }
+    const legend = createEl('div', { class: 'syop-line-legend' });
+    SERIES_CONFIG.forEach((series) => {
+      legend.appendChild(createEl('span', { class: 'legend-item' },
+        createEl('span', { class: 'legend-swatch', style: { backgroundColor: series.color } }),
+        createEl('span', { class: 'legend-label' }, series.label.replace(' %', ''))
+      ));
+    });
+    container.appendChild(legend);
 
     const containerWidth = container.clientWidth || 0;
     const fallbackWidth = 360;
     const width = containerWidth > 0 ? containerWidth : fallbackWidth;
-    const height = width < 520 ? 300 : 340;
-    const margin = width < 520
-      ? { top: 28, right: 14, bottom: 48, left: 44 }
-      : { top: 34, right: 24, bottom: 56, left: 60 };
+    const height = width < 540 ? 300 : 360;
+    const margin = width < 540
+      ? { top: 52, right: 20, bottom: 48, left: 54 }
+      : { top: 52, right: 28, bottom: 56, left: 68 };
     const chartWidth = width - margin.left - margin.right;
     const chartHeight = height - margin.top - margin.bottom;
-
     const svg = createSVG('svg', {
       viewBox: `0 0 ${width} ${height}`,
       width: String(width),
@@ -454,133 +418,91 @@
     const g = createSVG('g', { transform: `translate(${margin.left},${margin.top})` });
     svg.appendChild(g);
 
-    const groupWidth = chartWidth / SYOP_DATA.length;
-    const chartMax = barState.stacked
-      ? Math.max(...SYOP_DATA.map((row) => activeSeries.reduce((sum, series) => sum + (row[series.key] || 0), 0)))
-      : Math.max(...SYOP_DATA.map((row) => Math.max(...activeSeries.map((series) => row[series.key] || 0))));
-    const niceMax = Math.max(5, Math.ceil(chartMax / 5) * 5);
+    const categories = SYOP_DATA.map((row) => row.SYOP);
+    const stepX = chartWidth / (categories.length - 1 || 1);
+    const yTicks = [0, 10, 20, 30, 40];
 
-    const ticks = [];
-    const step = niceMax > 40 ? 10 : 5;
-    for (let value = 0; value <= niceMax + 0.0001; value += step) {
-      ticks.push(value);
-    }
-
-    ticks.forEach((tick) => {
-      const y = chartHeight - (tick / niceMax) * chartHeight;
-      const line = createSVG('line', {
+    yTicks.forEach((tick) => {
+      const y = chartHeight - (tick / 40) * chartHeight;
+      g.appendChild(createSVG('line', {
         x1: 0,
         x2: chartWidth,
         y1: y,
         y2: y,
         stroke: tick === 0 ? 'rgba(255,255,255,0.16)' : colors.grid
-      });
-      g.appendChild(line);
-
-      const label = createSVG('text', {
+      }));
+      g.appendChild(createSVG('text', {
         x: -12,
         y: y + 4,
         fill: colors.subtext,
         'font-size': '12',
         'text-anchor': 'end'
-      }, document.createTextNode(`${tick}%`));
-      g.appendChild(label);
+      }, document.createTextNode(`${tick}%`)));
     });
 
-    SYOP_DATA.forEach((row, index) => {
-      const baseX = index * groupWidth;
-      const labelX = baseX + groupWidth / 2;
-
-      if (barState.stacked) {
-        const barWidth = Math.min(48, groupWidth * 0.62);
-        let cumulative = 0;
-        activeSeries.forEach((series) => {
-          const value = row[series.key] || 0;
-          const yTop = chartHeight - ((cumulative + value) / niceMax) * chartHeight;
-          const yBottom = chartHeight - (cumulative / niceMax) * chartHeight;
-          const rect = createSVG('rect', {
-            x: baseX + (groupWidth - barWidth) / 2,
-            y: yTop,
-            width: barWidth,
-            height: Math.max(0, yBottom - yTop),
-            fill: series.color,
-            rx: 6,
-            ry: 6,
-            opacity: '0.95'
-          });
-          g.appendChild(rect);
-          cumulative += value;
-        });
-        const totalLabel = createSVG('text', {
-          x: labelX,
-          y: chartHeight - (cumulative / niceMax) * chartHeight - 6,
-          fill: colors.text,
-          'font-size': '11',
-          'text-anchor': 'middle',
-          'font-weight': '700'
-        }, document.createTextNode(`${(Math.round(cumulative * 10) / 10).toFixed(1)}%`));
-        g.appendChild(totalLabel);
-      } else {
-        const innerGap = Math.min(10, groupWidth * 0.18);
-        const barWidth = Math.min(32, (groupWidth - innerGap) / activeSeries.length);
-        const startX = baseX + (groupWidth - (barWidth * activeSeries.length + innerGap * (activeSeries.length - 1))) / 2;
-
-        activeSeries.forEach((series, seriesIndex) => {
-          const value = row[series.key] || 0;
-          const barHeight = (value / niceMax) * chartHeight;
-          const x = startX + seriesIndex * (barWidth + innerGap);
-          const y = chartHeight - barHeight;
-          const rect = createSVG('rect', {
-            x,
-            y,
-            width: barWidth,
-            height: Math.max(0, barHeight),
-            fill: series.color,
-            rx: 6,
-            ry: 6,
-            opacity: '0.95'
-          });
-          g.appendChild(rect);
-
-          const label = createSVG('text', {
-            x: x + barWidth / 2,
-            y: y - 4,
-            fill: colors.text,
-            'font-size': '10',
-            'text-anchor': 'middle',
-            'font-weight': '600'
-          }, document.createTextNode(`${value.toFixed(1)}%`));
-          g.appendChild(label);
-        });
-      }
-
-      const tickLabel = createSVG('text', {
-        x: labelX,
-        y: chartHeight + 24,
+    categories.forEach((category, index) => {
+      const x = index * stepX;
+      g.appendChild(createSVG('text', {
+        x,
+        y: chartHeight + 28,
         fill: colors.subtext,
         'font-size': '12',
         'text-anchor': 'middle'
-      }, document.createTextNode(row.SYOP));
-      g.appendChild(tickLabel);
+      }, document.createTextNode(category)));
     });
 
-    const axis = createSVG('line', {
+    const dotRadius = width < 560 ? 3.6 : 4.4;
+
+    SERIES_CONFIG.forEach((series) => {
+      const points = SYOP_DATA.map((row, index) => ({
+        x: index * stepX,
+        y: chartHeight - (row[series.key] / 40) * chartHeight,
+        value: row[series.key]
+      }));
+
+      const path = createSVG('path', {
+        d: catmullRomPath(points),
+        fill: 'none',
+        stroke: series.color,
+        'stroke-width': '3',
+        'stroke-linecap': 'round'
+      });
+      g.appendChild(path);
+
+      points.forEach((point) => {
+        g.appendChild(createSVG('circle', {
+          cx: point.x,
+          cy: point.y,
+          r: String(dotRadius),
+          fill: colors.bg,
+          stroke: series.color,
+          'stroke-width': '2'
+        }));
+        g.appendChild(createSVG('text', {
+          x: point.x,
+          y: point.y - (width < 560 ? 9 : 11),
+          fill: colors.text,
+          'font-size': '10',
+          'text-anchor': 'middle'
+        }, document.createTextNode(`${point.value.toFixed(1)}%`)));
+      });
+    });
+
+    g.appendChild(createSVG('line', {
       x1: 0,
       x2: chartWidth,
       y1: chartHeight,
       y2: chartHeight,
-      stroke: 'rgba(255,255,255,0.2)'
-    });
-    g.appendChild(axis);
+      stroke: 'rgba(255,255,255,0.18)'
+    }));
 
-    const xAxisLabel = createSVG('text', {
-      x: chartWidth / 2,
-      y: chartHeight + 42,
-      fill: colors.subtext,
-      'font-size': '12',
-      'text-anchor': 'middle'
-    }, document.createTextNode('SYOP Buckets (years)'));
-    g.appendChild(xAxisLabel);
+    g.appendChild(createSVG('text', {
+        x: chartWidth / 2,
+        y: chartHeight + 42,
+        fill: colors.subtext,
+        'font-size': '12',
+        'text-anchor': 'middle'
+      }, document.createTextNode('SYOP Buckets (years)')));
 
     container.appendChild(svg);
   }
@@ -972,7 +894,7 @@
     }
     resizeTimer = window.setTimeout(() => {
       renderSunburst();
-      renderBarChart();
+      renderSyopLineChart();
       renderGauges();
       renderDraftOverall();
       renderDraftPositional();
@@ -1022,7 +944,7 @@
           renderDraftPositional();
         } else {
           renderSunburst();
-          renderBarChart();
+          renderSyopLineChart();
           renderGauges();
         }
       });
@@ -1061,8 +983,7 @@
     applyUsernameFromQuery();
     setupTabs();
     renderSunburst();
-    setupBarControls();
-    renderBarChart();
+    renderSyopLineChart();
     renderGauges();
     renderDraftOverall();
     renderDraftPositional();
