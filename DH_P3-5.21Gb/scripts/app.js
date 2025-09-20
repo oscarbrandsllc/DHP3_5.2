@@ -50,7 +50,9 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
         const menuRosters = document.getElementById('menu-rosters');
         const menuOwnership = document.getElementById('menu-ownership');
         const menuAnalyzer = document.getElementById('menu-analyzer');
+        const menuSyop = document.getElementById('menu-syop');
         const analyzeLeagueButton = document.getElementById('analyzeLeagueButton');
+        const openSyopButton = document.getElementById('openSyopButton');
 
         menuButton?.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -123,6 +125,23 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
             dropdownMenu.classList.add('hidden');
         });
 
+        menuSyop?.addEventListener('click', () => {
+            if (pageType === 'syop') {
+                dropdownMenu.classList.add('hidden');
+                return;
+            }
+            const username = usernameInput.value.trim();
+            const suffix = username ? `?username=${encodeURIComponent(username)}` : '';
+            let url;
+            if (pageType === 'welcome') {
+                url = `syop/syop.html${suffix}`;
+            } else {
+                url = `../syop/syop.html${suffix}`;
+            }
+            window.location.href = url;
+            dropdownMenu.classList.add('hidden');
+        });
+
         // --- State ---
         let state = { userId: null, leagues: [], players: {}, oneQbData: {}, sflxData: {}, currentLeagueId: null, isSuperflex: false, cache: {}, teamsToCompare: new Set(), isCompareMode: false, currentRosterView: 'positional', activePositions: new Set(), tradeBlock: {}, isTradeCollapsed: false, weeklyStats: {}, playerSeasonStats: {}, playerSeasonRanks: {}, playerWeeklyStats: {}, statsSheetsLoaded: false, seasonRankCache: null, isGameLogModalOpenFromComparison: false };
         const assignedLeagueColors = new Map();
@@ -161,6 +180,17 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
                 if (!username) return;
                 window.location.href = `ownership/ownership.html?username=${encodeURIComponent(username)}`;
             });
+        } else if (pageType === 'syop') {
+            fetchRostersButton?.addEventListener('click', () => {
+                const username = usernameInput.value.trim();
+                if (!username) return;
+                window.location.href = `../rosters/rosters.html?username=${encodeURIComponent(username)}`;
+            });
+            fetchOwnershipButton?.addEventListener('click', () => {
+                const username = usernameInput.value.trim();
+                if (!username) return;
+                window.location.href = `../ownership/ownership.html?username=${encodeURIComponent(username)}`;
+            });
         } else if (pageType === 'rosters') {
             fetchRostersButton?.addEventListener('click', handleFetchRosters);
             fetchOwnershipButton?.addEventListener('click', () => {
@@ -181,6 +211,11 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
             leagueSelect?.addEventListener('change', (e) => {
                 handleLeagueSelect(e);
                 if (e && e.target && e.target.blur) e.target.blur();
+            });
+            openSyopButton?.addEventListener('click', () => {
+                const username = usernameInput.value.trim();
+                const suffix = username ? `?username=${encodeURIComponent(username)}` : '';
+                window.location.href = `../syop/syop.html${suffix}`;
             });
             rosterGrid?.addEventListener('click', handleTeamSelect);
             mainContent?.addEventListener('click', handleAssetClickForTrade);
@@ -204,7 +239,10 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
             });
 
             compareButton?.addEventListener('click', handleCompareClick);
-            clearCompareButton?.addEventListener('click', () => handleClearCompare(true));
+            clearCompareButton?.addEventListener('click', () => {
+                if (clearCompareButton.disabled) return;
+                handleClearCompare(true);
+            });
             positionalViewBtn?.addEventListener('click', () => setRosterView('positional'));
             depthChartViewBtn?.addEventListener('click', () => setRosterView('depth'));
             positionalFiltersContainer?.addEventListener('click', handlePositionFilter);
@@ -239,6 +277,14 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
         // --- Initialization ---
         document.addEventListener('DOMContentLoaded', async () => {
             if (pageType === 'analyzer') return;
+            if (pageType === 'syop') {
+                const params = new URLSearchParams(window.location.search);
+                const uname = params.get('username');
+                if (uname) {
+                    usernameInput.value = uname;
+                }
+                return;
+            }
             setLoading(true, 'Loading initial data...');
             await Promise.all([ fetchSleeperPlayers(), fetchDataFromGoogleSheet(), fetchPlayerStatsSheets() ]);
             setLoading(false);
@@ -501,9 +547,25 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
 
         function updateCompareButtonState() {
             const count = state.teamsToCompare.size;
+            if (clearCompareButton) {
+                const disable = count === 0;
+                clearCompareButton.disabled = disable;
+                clearCompareButton.setAttribute('aria-disabled', disable ? 'true' : 'false');
+                clearCompareButton.classList.toggle('active', count > 1);
+                clearCompareButton.classList.toggle('is-disabled', disable);
+            }
+
+            if (!compareButton) {
+                if (count < 2 && state.isCompareMode) {
+                    state.isCompareMode = false;
+                    rosterView.classList.remove('is-trade-mode');
+                    rosterGrid.classList.remove('is-preview-mode');
+                    updateHeaderPreviewState();
+                }
+                return;
+            }
+
             compareButton.disabled = count < 2;
-            clearCompareButton.classList.toggle('hidden', count === 0);
-            clearCompareButton.classList.toggle('active', count > 1);
 
             if (count > 1) {
                 compareButton.classList.add('glow-on-select');
@@ -522,7 +584,7 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
                 compareButton.classList.remove('compare-show-all');
                 unlockCompareButtonSize();
             }
-            
+
             if (count < 2 && state.isCompareMode) {
                 handleCompareClick(); // Automatically exit compare mode
             }
