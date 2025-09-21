@@ -26,7 +26,7 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
         const tradeSimulator = document.getElementById('tradeSimulator');
         const mainContent = document.getElementById('content');
         const pageType = document.body.dataset.page || 'welcome';
-        const researchButton = document.getElementById('syopResearchButton');
+        const researchButton = document.getElementById('researchButton');
 
         const gameLogsModal = document.getElementById('game-logs-modal');
         const modalCloseBtn = document.querySelector('.modal-close-btn');
@@ -51,18 +51,18 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
         const menuRosters = document.getElementById('menu-rosters');
         const menuOwnership = document.getElementById('menu-ownership');
         const menuAnalyzer = document.getElementById('menu-analyzer');
-        const menuSyop = document.getElementById('menu-syop');
+        const menuResearch = document.getElementById('menu-research');
         const analyzeLeagueButton = document.getElementById('analyzeLeagueButton');
-        const resolveSyopUrl = () => {
+        const resolveResearchUrl = () => {
             const username = usernameInput.value.trim();
             const suffix = username ? `?username=${encodeURIComponent(username)}` : '';
             if (pageType === 'welcome') {
-                return `syop/syop.html${suffix}`;
+                return `research/research.html${suffix}`;
             }
-            if (pageType === 'syop') {
-                return `syop/syop.html${suffix}`;
+            if (pageType === 'research') {
+                return `research/research.html${suffix}`;
             }
-            return `../syop/syop.html${suffix}`;
+            return `../research/research.html${suffix}`;
         };
 
         menuButton?.addEventListener('click', (e) => {
@@ -136,21 +136,21 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
             dropdownMenu.classList.add('hidden');
         });
 
-        menuSyop?.addEventListener('click', () => {
-            if (pageType === 'syop') {
+        menuResearch?.addEventListener('click', () => {
+            if (pageType === 'research') {
                 dropdownMenu.classList.add('hidden');
                 return;
             }
-            const url = resolveSyopUrl();
+            const url = resolveResearchUrl();
             window.location.href = url;
             dropdownMenu.classList.add('hidden');
         });
 
         researchButton?.addEventListener('click', () => {
-            if (pageType === 'syop') {
+            if (pageType === 'research') {
                 return;
             }
-            const url = resolveSyopUrl();
+            const url = resolveResearchUrl();
             window.location.href = url;
         });
 
@@ -192,7 +192,7 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
                 if (!username) return;
                 window.location.href = `ownership/ownership.html?username=${encodeURIComponent(username)}`;
             });
-        } else if (pageType === 'syop') {
+        } else if (pageType === 'research') {
             fetchRostersButton?.addEventListener('click', () => {
                 const username = usernameInput.value.trim();
                 if (!username) return;
@@ -281,7 +281,7 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
         // --- Initialization ---
         document.addEventListener('DOMContentLoaded', async () => {
             if (pageType === 'analyzer') return;
-            if (pageType === 'syop') {
+            if (pageType === 'research') {
                 const params = new URLSearchParams(window.location.search);
                 const uname = params.get('username');
                 if (uname) {
