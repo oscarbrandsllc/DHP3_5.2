@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>SYOP Analytics • Dynasty Hub</title>
+<title>Research • Dynasty Hub</title>
 <link href="https://fonts.googleapis.com" rel="preconnect"/>
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@200;300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
@@ -18,7 +18,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../assets/icons/favicon-16.png?v=20250827002411?v=20250826235225" />
 <link rel="shortcut icon" href="../assets/icons/favicon.ico?v=20250827002411?v=20250826235225" />
 </head>
-<body data-page="syop" class="p-2 sm:p-4">
+<body data-page="research" class="p-2 sm:p-4">
 <div aria-hidden="true" id="starfield">
   <div id="stars"></div>
   <div id="stars1"></div>
@@ -43,7 +43,7 @@
             <a href="#" id="menu-rosters">Rosters</a>
             <a href="#" id="menu-ownership">Ownership</a>
             <a href="#" id="menu-analyzer">League Analyzer</a>
-            <a href="#" id="menu-syop" class="active">SYOP</a>
+            <a href="#" id="menu-research" class="active">Research</a>
           </div>
         </div>
         <div class="username-area">
@@ -57,7 +57,7 @@
     </header>
   </div>
   <main class="container mx-auto syop-main" id="content">
-    <div class="syop-tabs" role="tablist" aria-label="SYOP dashboards">
+    <div class="syop-tabs" role="tablist" aria-label="Research dashboards">
       <button class="syop-tab active" id="syop-tab-button" type="button" role="tab" aria-selected="true" tabindex="0" data-target="syop-tab-panel">SYOP</button>
       <button class="syop-tab" id="draft-tab-button" type="button" role="tab" aria-selected="false" tabindex="-1" data-target="draft-tab-panel">NFL Draft &mdash; Player Hit Rates</button>
     </div>
@@ -72,37 +72,35 @@
           <div class="syop-hero-summary">
             <div class="syop-hero-meta">
               <div class="syop-hero-meta-item">
-                <span class="meta-label">Sample</span>
+                <span class="meta-label">Sample Size and Qualifying Years</span>
                 <span class="meta-value">297 players &bull; 2008 &ndash; 2018</span>
               </div>
               <div class="syop-hero-meta-item">
                 <span class="meta-label">Qualification</span>
-                <span class="meta-value">Met positional SYOP + BoA thresholds</span>
+                <span class="meta-value">Meeting indicated Threshold &ge; 1 time within the qualifying years</span>
+              </div>
+              <div class="syop-hero-meta-item">
+                <span class="meta-label">Thresholds</span>
+                <span class="meta-value">[PPR FPTS | QB &ge; 179 &bull; RB &ge; 182 &bull; WR &ge; 176 &bull; TE &ge; 161]</span>
               </div>
               <div class="syop-hero-meta-item">
                 <span class="meta-label">Benchmarks</span>
-                <span class="meta-value">QB ≥ 179 &bull; RB ≥ 182 &bull; WR ≥ 176 &bull; TE ≥ 161</span>
-              </div>
-              <div class="syop-hero-meta-item">
-                <span class="meta-label">Context</span>
-                <span class="meta-value">Derived from average minimum QB2, RB2, WR2, TE1 PPR production.</span>
+                <span class="meta-value">Thresholds from average minimum QB2, RB2, WR2, TE1 PPR production.</span>
               </div>
             </div>
           </div>
         </section>
-        <div class="syop-section-heading">
-          <h2 id="syop-infographic-heading">SYOP Infographic</h2>
-          <p>Position-specific longevity with interactive distributions and streamlined visual summaries.</p>
-        </div>
+        <div class="sr-only" id="syop-infographic-heading">SYOP Infographic</div>
         <div class="syop-panels-grid">
-          <article class="syop-panel" id="syop-sunburst-panel">
+          <article class="syop-panel glass-panel" id="syop-sunburst-panel">
             <header>
               <h3>AVG [Mean | Λ] · Majority [Mode | M]</h3>
               <p>(per-position breakdown)</p>
             </header>
             <div id="syop-sunburst" class="syop-panel-body"></div>
           </article>
-          <article class="syop-panel syop-panel-wide" id="syop-bar-panel">
+          <div class="syop-panel syop-gauges glass-panel" id="syop-gauges" aria-label="Average SYOP gauges"></div>
+          <article class="syop-panel syop-panel-wide glass-panel" id="syop-bar-panel">
             <header>
               <h3>Positional | Significant Years of Production</h3>
               <p>(% of position within each SYOP bucket)</p>
@@ -112,7 +110,6 @@
             </div>
           </article>
         </div>
-        <div class="syop-panel syop-gauges" id="syop-gauges" aria-label="Average SYOP gauges"></div>
         <p class="syop-footnote">Data sourced from Dynasty Hub SYOP research feeds. Visualization rebuilt for the League HQ experience.</p>
         <section class="syop-key-legend" aria-label="SYOP metrics key">
           <div class="syop-key-grid">
@@ -142,7 +139,7 @@
           <p>Overall and positional hit probabilities across draft rounds.</p>
         </div>
         <div class="syop-panels-grid syop-draft-grid">
-          <article class="syop-panel" id="draft-overall-panel">
+          <article class="syop-panel glass-panel" id="draft-overall-panel">
             <header>
               <h3>Overall Hit Probability</h3>
               <p>All positions &times; round</p>
@@ -152,7 +149,7 @@
               <div class="draft-round-tiles" id="draft-round-tiles"></div>
             </div>
           </article>
-          <article class="syop-panel" id="draft-positional-panel">
+          <article class="syop-panel glass-panel" id="draft-positional-panel">
             <header>
               <h3>Positional Hit Rate Trends by Round</h3>
               <p>Exact percentages by position and draft round</p>
