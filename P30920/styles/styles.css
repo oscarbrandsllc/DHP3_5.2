@@ -57,6 +57,18 @@
         overflow-x: hidden;
         position: relative;
       }
+
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
       
         button:focus,
         input:focus,
@@ -4129,11 +4141,11 @@ img.team-logo.glow[alt="WAS"] {
 /* =========================
    SYOP PAGE LAYOUT & VISUALS
    ========================= */
-body[data-page="syop"] {
+body[data-page="research"] {
   background-color: #0a0f1e;
 }
 
-body[data-page="syop"] .app-header {
+body[data-page="research"] .app-header {
   margin-bottom: 1.05rem;
 }
 
@@ -4174,8 +4186,8 @@ body[data-page="syop"] .app-header {
 }
 
 .syop-hero h1 {
-  font-size: clamp(1.78rem, 1.45rem + 1.3vw, 2.35rem);
-  margin: 0.3rem 0 0.1rem;
+  font-size: clamp(1.62rem, 1.32rem + 1.05vw, 2.08rem);
+  margin: 0.12rem 0;
   letter-spacing: -0.02em;
 }
 
@@ -4236,10 +4248,10 @@ body[data-page="syop"] .app-header {
   display: flex;
   flex-wrap: wrap;
   gap: 0.35rem;
-  padding: 0.45rem 0.55rem;
+  padding: 0;
   border-radius: 14px;
-  background: rgba(15, 18, 32, 0.72);
-  border: 1px solid rgba(132, 146, 255, 0.1);
+  background: transparent;
+  border: none;
 }
 
 .syop-hero-meta-item {
@@ -4350,14 +4362,53 @@ body[data-page="syop"] .app-header {
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
 }
 
+.syop-panels-grid--syop {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    "sunburst"
+    "gauges"
+    "bar";
+}
+
+.syop-panels-grid--syop #syop-sunburst-panel {
+  grid-area: sunburst;
+}
+
+.syop-panels-grid--syop #syop-gauges {
+  grid-area: gauges;
+}
+
+.syop-panels-grid--syop #syop-bar-panel {
+  grid-area: bar;
+}
+
+.syop-panels-grid--syop .syop-panel {
+  min-height: 100%;
+}
+
+@media (min-width: 768px) {
+  .syop-panels-grid--syop {
+    grid-template-columns: repeat(2, minmax(280px, 1fr));
+    grid-template-areas:
+      "sunburst sunburst"
+      "gauges gauges"
+      "bar bar";
+  }
+}
+
 .syop-panel {
   position: relative;
   padding: 0.85rem;
-  background: rgba(18, 21, 38, 0.78);
   border-radius: 16px;
-  border: 1px solid rgba(132, 146, 255, 0.16);
-  box-shadow: 0 12px 26px rgba(4, 7, 16, 0.44);
-  backdrop-filter: blur(12px);
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.syop-panel.glass-panel {
+  border-radius: 16px;
+  --outerA: 0.32;
 }
 
 .syop-panel header h3 {
@@ -4386,41 +4437,59 @@ body[data-page="syop"] .app-header {
 
 .syop-gauges {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 0.75rem;
-  padding: 1rem;
-  background: rgba(18, 21, 38, 0.78);
+  grid-template-columns: repeat(2, minmax(150px, 1fr));
+  gap: 1rem;
+  padding: 1.1rem 1.25rem 1.2rem;
+  background: transparent;
   border-radius: 16px;
-  border: 1px solid rgba(132, 146, 255, 0.16);
-  box-shadow: 0 12px 26px rgba(4, 7, 16, 0.44);
-  backdrop-filter: blur(12px);
+  border: none;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+@media (max-width: 360px) {
+  .syop-gauges {
+    grid-template-columns: 1fr;
+  }
+}
+
+.syop-gauges.glass-panel {
+  border-radius: 16px;
+  --outerA: 0.32;
 }
 
 .syop-gauge-card {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.45rem;
+  padding: 0.4rem 0.35rem 0.6rem;
+}
+
+.syop-gauge-svg {
+  width: 100%;
+  height: auto;
+  max-width: 260px;
 }
 
 .syop-gauge-label {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.1rem;
+  gap: 0.15rem;
   text-transform: uppercase;
-  letter-spacing: 0.18em;
-  font-size: 0.62rem;
-}
-
-.syop-gauge-svg {
-  width: 100%;
-  height: auto;
+  letter-spacing: 0.24em;
+  font-size: 0.64rem;
 }
 
 .syop-gauge-label .gauge-value {
-  font-size: 1.05rem;
+  font-size: 1.08rem;
   font-weight: 700;
+}
+
+.syop-gauge-label .gauge-title {
+  font-size: 0.58rem;
+  letter-spacing: 0.32em;
 }
 
 .syop-bar-controls {
@@ -4508,9 +4577,10 @@ body[data-page="syop"] .app-header {
   flex: 1 1 auto;
 }
 
+
 .syop-heatmap-scroll {
   width: 100%;
-  overflow-x: auto;
+  overflow-x: hidden;
   padding-bottom: 0.35rem;
 }
 
@@ -4524,10 +4594,10 @@ body[data-page="syop"] .app-header {
 }
 
 .syop-heatmap {
-  min-width: 520px;
+  width: 100%;
   display: grid;
-  gap: 0.35rem;
-  padding: 0.65rem;
+  gap: 0.3rem;
+  padding: 0.55rem;
   background: rgba(12, 15, 28, 0.72);
   border-radius: 14px;
   border: 1px solid rgba(132, 146, 255, 0.14);
@@ -4536,8 +4606,8 @@ body[data-page="syop"] .app-header {
 
 .syop-heatmap-row {
   display: grid;
-  grid-template-columns: minmax(56px, 0.75fr) repeat(4, minmax(100px, 1fr));
-  gap: 0.35rem;
+  grid-template-columns: minmax(48px, 0.8fr) repeat(4, minmax(0, 1fr));
+  gap: 0.3rem;
   align-items: stretch;
 }
 
@@ -4574,17 +4644,17 @@ body[data-page="syop"] .app-header {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0.55rem 0.6rem;
+  padding: 0.5rem 0.55rem;
   border-radius: 12px;
   background: rgba(12, 15, 28, 0.72);
   border: 1px solid rgba(132, 146, 255, 0.12);
-  min-height: 48px;
+  min-height: 46px;
 }
 
 .syop-heatmap-cell.bucket-cell {
   justify-content: center;
   font-weight: 700;
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: rgba(182, 185, 214, 0.85);
@@ -4594,7 +4664,7 @@ body[data-page="syop"] .app-header {
 .syop-heatmap-cell.value-cell {
   color: #f5f7ff;
   font-weight: 600;
-  font-size: 0.88rem;
+  font-size: 0.84rem;
   border: 1px solid rgba(132, 146, 255, 0.18);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
 }
@@ -4850,21 +4920,30 @@ body[data-page="syop"] .app-header {
 
   .syop-panel,
   .syop-gauges {
-    padding: 0.8rem;
+    padding: 0.85rem;
+  }
+
+  .syop-gauges {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 0.85rem;
   }
 
   .syop-heatmap {
-    min-width: 480px;
-    padding: 0.55rem;
-    gap: 0.3rem;
+    padding: 0.48rem;
+    gap: 0.28rem;
+  }
+
+  .syop-heatmap-row {
+    grid-template-columns: minmax(42px, 0.75fr) repeat(4, minmax(0, 1fr));
   }
 
   .syop-heatmap-cell {
-    min-height: 44px;
+    min-height: 42px;
+    padding: 0.45rem 0.5rem;
   }
 
   .syop-heatmap-cell.value-cell {
-    font-size: 0.84rem;
+    font-size: 0.8rem;
   }
 
   .syop-key-legend {
@@ -4919,28 +4998,65 @@ body[data-page="syop"] .app-header {
     padding: 0.72rem;
   }
 
+  .syop-gauges {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+
   .syop-section-heading p {
     font-size: 0.86rem;
   }
 
   .syop-heatmap {
-    min-width: 440px;
-    padding: 0.45rem;
+    padding: 0.42rem;
+  }
+
+  .syop-heatmap-row {
+    grid-template-columns: minmax(38px, 0.7fr) repeat(4, minmax(0, 1fr));
   }
 
   .syop-heatmap-cell {
-    min-height: 42px;
+    min-height: 40px;
+    padding: 0.42rem 0.46rem;
   }
 
   .syop-heatmap-cell.bucket-cell {
-    font-size: 0.72rem;
+    font-size: 0.7rem;
   }
 
   .syop-heatmap-cell.value-cell {
-    font-size: 0.8rem;
+    font-size: 0.76rem;
   }
 
   .syop-key-legend {
     padding: 0.58rem 0.65rem;
+  }
+}
+
+@media (max-width: 380px) {
+  .syop-gauges {
+    grid-template-columns: 1fr;
+    gap: 0.65rem;
+  }
+
+  .syop-gauge-label .gauge-value {
+    font-size: 1rem;
+  }
+
+  .syop-gauge-label .gauge-title {
+    letter-spacing: 0.28em;
+  }
+
+  .syop-heatmap-row {
+    grid-template-columns: minmax(34px, 0.65fr) repeat(4, minmax(0, 1fr));
+  }
+
+  .syop-heatmap-cell {
+    padding: 0.38rem 0.42rem;
+    min-height: 38px;
+  }
+
+  .syop-heatmap-cell.value-cell {
+    font-size: 0.72rem;
   }
 }
