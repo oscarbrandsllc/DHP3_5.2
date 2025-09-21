@@ -21,22 +21,22 @@
 
   const SUNBURST_NODES = [
     { id: 'root', parent: null, label: 'SYOP Averages', subtitle: 'Mean Λ vs Mode M', value: 51.6 },
-    { id: 'qb', parent: 'root', label: 'QB', subtitle: 'Quarterbacks', value: 16.46, series: 'QB' },
+    { id: 'qb', parent: 'root', label: 'QB', subtitle: '', value: 16.46, series: 'QB' },
     { id: 'qb-prime-lambda', parent: 'qb', label: 'Prime Λ', subtitle: '7.2 yrs', value: 6.5, abbr: 'SPΛ', stat: '7.2' },
     { id: 'qb-breakout-lambda', parent: 'qb', label: 'Breakout Λ', subtitle: '2.3 yrs', value: 2.49, abbr: 'BOΛ', stat: '2.3' },
     { id: 'qb-prime-mode', parent: 'qb', label: 'Prime M', subtitle: '6.0 yrs', value: 5.35, abbr: 'SPM', stat: '6.0' },
     { id: 'qb-baseline-mode', parent: 'qb', label: 'Baseline M', subtitle: '1.0 yrs', value: 2.1, abbr: 'BOM', stat: '1.0' },
-    { id: 'rb', parent: 'root', label: 'RB', subtitle: 'Running Backs', value: 9.8, series: 'RB' },
+    { id: 'rb', parent: 'root', label: 'RB', subtitle: '', value: 9.8, series: 'RB' },
     { id: 'rb-prime-lambda', parent: 'rb', label: 'Prime Λ', subtitle: '3.4 yrs', value: 3.31, abbr: 'SPΛ', stat: '3.4' },
     { id: 'rb-breakout-lambda', parent: 'rb', label: 'Breakout Λ', subtitle: '2.2 yrs', value: 2.5, abbr: 'BOΛ', stat: '2.2' },
     { id: 'rb-prime-mode', parent: 'rb', label: 'Prime M', subtitle: '0.7 yrs', value: 1.89, abbr: 'SPM', stat: '0.7' },
     { id: 'rb-baseline-mode', parent: 'rb', label: 'Baseline M', subtitle: '1.7 yrs', value: 2.1, abbr: 'BOM', stat: '1.7' },
-    { id: 'wr', parent: 'root', label: 'WR', subtitle: 'Wide Receivers', value: 12.82, series: 'WR' },
+    { id: 'wr', parent: 'root', label: 'WR', subtitle: '', value: 12.82, series: 'WR' },
     { id: 'wr-prime-lambda', parent: 'wr', label: 'Prime Λ', subtitle: '4.9 yrs', value: 4.92, abbr: 'SPΛ', stat: '4.9' },
     { id: 'wr-breakout-lambda', parent: 'wr', label: 'Breakout Λ', subtitle: '2.9 yrs', value: 2.84, abbr: 'BOΛ', stat: '2.9' },
     { id: 'wr-prime-mode', parent: 'wr', label: 'Prime M', subtitle: '3.0 yrs', value: 3, abbr: 'SPM', stat: '3.0' },
     { id: 'wr-baseline-mode', parent: 'wr', label: 'Baseline M', subtitle: '2.0 yrs', value: 2, abbr: 'BOM', stat: '2.0' },
-    { id: 'te', parent: 'root', label: 'TE', subtitle: 'Tight Ends', value: 12.5, series: 'TE' },
+    { id: 'te', parent: 'root', label: 'TE', subtitle: '', value: 12.5, series: 'TE' },
     { id: 'te-prime-lambda', parent: 'te', label: 'Prime Λ', subtitle: '4.0 yrs', value: 4.01, abbr: 'SPΛ', stat: '4.0' },
     { id: 'te-breakout-lambda', parent: 'te', label: 'Breakout Λ', subtitle: '3.5 yrs', value: 3.49, abbr: 'BOΛ', stat: '3.5' },
     { id: 'te-prime-mode', parent: 'te', label: 'Prime M', subtitle: '2.0 yrs', value: 2, abbr: 'SPM', stat: '2.0' },
@@ -59,10 +59,10 @@
   ];
 
   const GAUGES = [
-    { key: 'TE', value: 4.0, color: colors.te },
+    { key: 'QB', value: 7.22, color: colors.qb },
     { key: 'RB', value: 3.39, color: colors.rb },
     { key: 'WR', value: 4.9, color: colors.wr },
-    { key: 'QB', value: 7.22, color: colors.qb }
+    { key: 'TE', value: 4.0, color: colors.te }
   ];
 
   const DRAFT_OVERALL = [
@@ -227,7 +227,7 @@
       height: String(size),
       class: 'syop-sunburst-svg',
       role: 'img',
-      'aria-labelledby': 'syop-infographic-heading'
+      'aria-label': 'SYOP averages sunburst chart'
     });
 
     let cursor = startAngle;
@@ -276,17 +276,6 @@
         'font-family': '"Quicksand", "Product Sans", sans-serif'
       });
       text.appendChild(document.createTextNode(segment.node.label));
-      if (segment.node.subtitle) {
-        const subtitle = createSVG('tspan', {
-          x: pos.x,
-          dy: `${18 * scale}`,
-          'font-size': fontSize(14, 12.5),
-          'font-weight': '600',
-          fill: colors.subtext,
-          'font-family': '"Quicksand", "Product Sans", sans-serif'
-        }, document.createTextNode(segment.node.subtitle));
-        text.appendChild(subtitle);
-      }
       svg.appendChild(text);
     });
 
@@ -309,7 +298,7 @@
         fill: colors.text,
         'text-anchor': 'middle',
         'dominant-baseline': 'middle',
-        'font-size': fontSize(20, 14),
+        'font-size': fontSize(20, 15),
         'font-weight': '700',
         'paint-order': 'stroke',
         stroke: textStroke,
@@ -322,11 +311,14 @@
         label.appendChild(createSVG('tspan', {
           x: center.x,
           dy: `${18 * scale}`,
-          'font-size': fontSize(16, 13.5),
-          'font-weight': '700',
-          fill: colors.subtext,
+          'font-size': fontSize(18, 16),
+          'font-weight': '800',
+          fill: parentColor || colors.text,
+          'paint-order': 'stroke',
+          stroke: textStroke,
+          'stroke-width': Math.max(0.45, 0.65 * scale).toFixed(3),
           'font-family': '"Quicksand", "Product Sans", sans-serif'
-        }, document.createTextNode(`${stat} yrs`)));
+        }, document.createTextNode(stat)));
       }
       svg.appendChild(label);
     });
@@ -448,7 +440,7 @@
       const svg = renderGaugeSVG(gauge);
       const label = createEl('div', { class: 'syop-gauge-label' },
         createEl('span', { class: 'gauge-value', style: { color: gauge.color } }, gauge.key),
-        createEl('span', { class: 'gauge-title', style: { color: colors.subtext } }, 'Avg SYOP (yrs)')
+        createEl('span', { class: 'gauge-title', style: { color: colors.subtext } }, 'AVG SYOP (YRS)')
       );
       gaugeWrapper.appendChild(svg);
       gaugeWrapper.appendChild(label);
@@ -459,11 +451,11 @@
   function renderGaugeSVG(gauge) {
     const min = 2;
     const max = 8;
-    const width = 240;
-    const height = 160;
+    const width = 220;
+    const height = 150;
     const cx = width / 2;
     const cy = height - 18;
-    const radius = 112;
+    const radius = 102;
     const trackWidth = 18;
 
     const start = -Math.PI;
@@ -534,7 +526,7 @@
 
     const valueText = createSVG('text', {
       x: cx,
-      y: cy - 64,
+      y: cy - 58,
       fill: colors.text,
       'font-size': '48',
       'font-weight': '800',
@@ -547,7 +539,7 @@
 
     svg.appendChild(createSVG('text', {
       x: cx,
-      y: cy - 28,
+      y: cy - 26,
       fill: colors.subtext,
       'font-size': '15',
       'font-weight': '700',
