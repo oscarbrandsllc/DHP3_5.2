@@ -4386,8 +4386,8 @@ body[data-page="syop"] .app-header {
 
 .syop-gauges {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.85rem;
   padding: 1rem;
   background: rgba(18, 21, 38, 0.78);
   border-radius: 16px;
@@ -4400,7 +4400,7 @@ body[data-page="syop"] .app-header {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.4rem;
 }
 
 .syop-gauge-label {
@@ -4416,6 +4416,7 @@ body[data-page="syop"] .app-header {
 .syop-gauge-svg {
   width: 100%;
   height: auto;
+  max-width: 240px;
 }
 
 .syop-gauge-label .gauge-value {
@@ -4510,7 +4511,7 @@ body[data-page="syop"] .app-header {
 
 .syop-heatmap-scroll {
   width: 100%;
-  overflow-x: auto;
+  overflow-x: hidden;
   padding-bottom: 0.35rem;
 }
 
@@ -4524,7 +4525,7 @@ body[data-page="syop"] .app-header {
 }
 
 .syop-heatmap {
-  min-width: 520px;
+  width: 100%;
   display: grid;
   gap: 0.35rem;
   padding: 0.65rem;
@@ -4536,7 +4537,7 @@ body[data-page="syop"] .app-header {
 
 .syop-heatmap-row {
   display: grid;
-  grid-template-columns: minmax(56px, 0.75fr) repeat(4, minmax(100px, 1fr));
+  grid-template-columns: minmax(48px, 0.7fr) repeat(4, minmax(0, 1fr));
   gap: 0.35rem;
   align-items: stretch;
 }
@@ -4853,8 +4854,12 @@ body[data-page="syop"] .app-header {
     padding: 0.8rem;
   }
 
+  .syop-gauges {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+
   .syop-heatmap {
-    min-width: 480px;
+    width: 100%;
     padding: 0.55rem;
     gap: 0.3rem;
   }
@@ -4919,13 +4924,17 @@ body[data-page="syop"] .app-header {
     padding: 0.72rem;
   }
 
-  .syop-section-heading p {
-    font-size: 0.86rem;
+  .syop-gauges {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .syop-heatmap {
-    min-width: 440px;
+    width: 100%;
     padding: 0.45rem;
+  }
+
+  .syop-heatmap-row {
+    grid-template-columns: minmax(44px, 0.65fr) repeat(4, minmax(0, 1fr));
   }
 
   .syop-heatmap-cell {
@@ -4942,5 +4951,24 @@ body[data-page="syop"] .app-header {
 
   .syop-key-legend {
     padding: 0.58rem 0.65rem;
+  }
+}
+
+@media (max-width: 420px) {
+  .syop-gauges {
+    grid-template-columns: 1fr;
+    gap: 0.65rem;
+  }
+
+  .syop-gauge-card {
+    gap: 0.32rem;
+  }
+
+  .syop-heatmap {
+    padding: 0.4rem;
+  }
+
+  .syop-heatmap-row {
+    grid-template-columns: minmax(40px, 0.6fr) repeat(4, minmax(0, 1fr));
   }
 }
