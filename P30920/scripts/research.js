@@ -1,5 +1,5 @@
 (function () {
-  const PAGE_ID = 'syop';
+  const PAGE_ID = 'research';
   const SVG_NS = 'http://www.w3.org/2000/svg';
 
   const colors = {
@@ -17,6 +17,13 @@
     rb: '#3BE6C4',
     wr: '#8B7CFF',
     te: '#FF7AC7'
+  };
+
+  const sunburstPalette = {
+    QB: '#6311ee',
+    RB: '#730fff',
+    WR: '#8021ff',
+    TE: '#922fff'
   };
 
   const SUNBURST_NODES = [
@@ -59,10 +66,10 @@
   ];
 
   const GAUGES = [
-    { key: 'TE', value: 4.0, color: colors.te },
+    { key: 'QB', value: 7.22, color: colors.qb },
     { key: 'RB', value: 3.39, color: colors.rb },
     { key: 'WR', value: 4.9, color: colors.wr },
-    { key: 'QB', value: 7.22, color: colors.qb }
+    { key: 'TE', value: 4.0, color: colors.te }
   ];
 
   const DRAFT_OVERALL = [
@@ -173,18 +180,7 @@
   }
 
   function seriesColor(series) {
-    switch (series) {
-      case 'QB':
-        return colors.qb;
-      case 'RB':
-        return colors.rb;
-      case 'WR':
-        return colors.wr;
-      case 'TE':
-        return colors.te;
-      default:
-        return '#6b7280';
-    }
+    return sunburstPalette[series] || '#6b7280';
   }
 
   function hexToRgba(hex, alpha) {
@@ -194,6 +190,11 @@
     const g = (value >> 8) & 255;
     const b = value & 255;
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
+
+  function stripYearSuffix(text) {
+    if (typeof text !== 'string') return text;
+    return text.replace(/\s*yrs?\.?/gi, '').trim();
   }
 
   function renderSunburst() {
@@ -254,7 +255,7 @@
       const color = seriesColor(segment.node.series);
       const path = createSVG('path', {
         d: arcPath(cx, cy, inner1, outer1, segment.a0, segment.a1),
-        fill: hexToRgba(color, 0.9),
+        fill: color,
         stroke: colors.bg,
         'stroke-width': (1.2 * scale).toFixed(3)
       });
@@ -276,15 +277,16 @@
         'font-family': '"Quicksand", "Product Sans", sans-serif'
       });
       text.appendChild(document.createTextNode(segment.node.label));
-      if (segment.node.subtitle) {
+      const subtitleText = stripYearSuffix(segment.node.subtitle);
+      if (subtitleText && !segment.node.series) {
         const subtitle = createSVG('tspan', {
           x: pos.x,
           dy: `${18 * scale}`,
-          'font-size': fontSize(14, 12.5),
-          'font-weight': '600',
-          fill: colors.subtext,
+          'font-size': fontSize(15, 13),
+          'font-weight': '700',
+          fill: colors.text,
           'font-family': '"Quicksand", "Product Sans", sans-serif'
-        }, document.createTextNode(segment.node.subtitle));
+        }, document.createTextNode(subtitleText));
         text.appendChild(subtitle);
       }
       svg.appendChild(text);
@@ -294,7 +296,7 @@
       const parentColor = seriesColor(segment.parent.node.series);
       const path = createSVG('path', {
         d: arcPath(cx, cy, inner2, outer2, segment.a0, segment.a1),
-        fill: hexToRgba(parentColor, 0.78),
+        fill: hexToRgba(parentColor, 0.5),
         stroke: colors.bg,
         'stroke-width': (1.1 * scale).toFixed(3)
       });
@@ -309,24 +311,28 @@
         fill: colors.text,
         'text-anchor': 'middle',
         'dominant-baseline': 'middle',
-        'font-size': fontSize(20, 14),
-        'font-weight': '700',
+        'font-size': fontSize(22, 15),
+        'font-weight': '800',
         'paint-order': 'stroke',
         stroke: textStroke,
         'stroke-width': Math.max(0.4, 0.6 * scale).toFixed(3),
         'font-family': '"Quicksand", "Product Sans", sans-serif'
       });
       label.appendChild(document.createTextNode(segment.node.abbr || segment.node.label));
-      const stat = segment.node.stat || (segment.node.subtitle ? segment.node.subtitle.replace(/[^0-9.]+/g, '') : '');
+      const statRaw = segment.node.stat || (segment.node.subtitle ? segment.node.subtitle.replace(/[^0-9.]+/g, '') : '');
+      const stat = stripYearSuffix(statRaw);
       if (stat) {
         label.appendChild(createSVG('tspan', {
           x: center.x,
           dy: `${18 * scale}`,
-          'font-size': fontSize(16, 13.5),
-          'font-weight': '700',
-          fill: colors.subtext,
+          'font-size': fontSize(18, 14.5),
+          'font-weight': '800',
+          fill: colors.text,
+          'paint-order': 'stroke',
+          stroke: textStroke,
+          'stroke-width': Math.max(0.35, 0.55 * scale).toFixed(3),
           'font-family': '"Quicksand", "Product Sans", sans-serif'
-        }, document.createTextNode(`${stat} yrs`)));
+        }, document.createTextNode(stat)));
       }
       svg.appendChild(label);
     });
@@ -448,7 +454,7 @@
       const svg = renderGaugeSVG(gauge);
       const label = createEl('div', { class: 'syop-gauge-label' },
         createEl('span', { class: 'gauge-value', style: { color: gauge.color } }, gauge.key),
-        createEl('span', { class: 'gauge-title', style: { color: colors.subtext } }, 'Avg SYOP (yrs)')
+        createEl('span', { class: 'gauge-title', style: { color: colors.subtext } }, 'AVG SYOP (YRS)')
       );
       gaugeWrapper.appendChild(svg);
       gaugeWrapper.appendChild(label);
@@ -534,25 +540,25 @@
 
     const valueText = createSVG('text', {
       x: cx,
-      y: cy - 64,
+      y: cy - 52,
       fill: colors.text,
-      'font-size': '48',
+      'font-size': '44',
       'font-weight': '800',
       'text-anchor': 'middle',
       'paint-order': 'stroke',
-      stroke: 'rgba(11, 14, 22, 0.65)',
-      'stroke-width': '0.72'
+      stroke: 'rgba(11, 14, 22, 0.72)',
+      'stroke-width': '0.75'
     }, document.createTextNode(gauge.value.toFixed(2)));
     svg.appendChild(valueText);
 
     svg.appendChild(createSVG('text', {
       x: cx,
-      y: cy - 28,
+      y: cy - 22,
       fill: colors.subtext,
       'font-size': '15',
       'font-weight': '700',
       'text-anchor': 'middle'
-    }, document.createTextNode('yrs')));
+    }, document.createTextNode('YRS')));
 
     return svg;
   }
