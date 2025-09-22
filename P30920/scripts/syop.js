@@ -406,57 +406,89 @@
     container.appendChild(svg);
   }
 
-  function renderBarChart() {
+  function renderStackedAreaChart() {
     const container = document.getElementById('syop-bar-chart');
     if (!container) return;
     container.innerHTML = '';
+    container.style.overflow = 'visible';
 
-    const scroll = createEl('div', { class: 'syop-heatmap-scroll' });
-    const grid = createEl('div', { class: 'syop-heatmap' });
+    const data = SYOP_DATA.map(d => ({
+      SYOP: d.SYOP,
+      'QB %': +d['QB %'],
+      'RB %': +d['RB %'],
+      'WR %': +d['WR %'],
+      'TE %': +d['TE %'],
+    }));
 
-    const headerRow = createEl('div', { class: 'syop-heatmap-row syop-heatmap-header' },
-      createEl('div', { class: 'syop-heatmap-cell bucket-cell' }, 'SYOP')
-    );
-    SERIES_CONFIG.forEach((series) => {
-      headerRow.appendChild(createEl('div', {
-        class: 'syop-heatmap-cell position-header',
-        style: { '--header-accent': series.color }
-      }, series.label.replace('%', '').trim()));
-    });
-    grid.appendChild(headerRow);
+    const keys = SERIES_CONFIG.map(s => s.key);
+    const colors = SERIES_CONFIG.reduce((acc, s) => {
+      acc[s.key] = s.color;
+      return acc;
+    }, {});
 
-    const maxValue = Math.max(...SYOP_DATA.flatMap((row) => SERIES_CONFIG.map((series) => row[series.key] || 0)));
+    const stack = d3.stack().keys(keys);
+    const stackedData = stack(data);
 
-    SYOP_DATA.forEach((row) => {
-      const rowEl = createEl('div', { class: 'syop-heatmap-row' });
-      rowEl.appendChild(createEl('div', { class: 'syop-heatmap-cell bucket-cell' }, row.SYOP));
+    const containerWidth = container.clientWidth;
+    const margin = { top: 20, right: 10, bottom: 60, left: 50 };
+    const width = containerWidth - margin.left - margin.right;
+    const height = 400 - margin.top - margin.bottom;
 
-      SERIES_CONFIG.forEach((series) => {
-        const value = row[series.key] || 0;
-        const intensity = maxValue > 0 ? value / maxValue : 0;
-        const width = Math.max(12, Math.min(100, intensity * 100));
-        const fill = hexToRgba(series.color, 0.35 + 0.55 * intensity);
-        const bar = createEl('span', {
-          class: 'syop-heatmap-bar',
-          style: {
-            width: `${width}%`,
-            background: fill
-          }
-        });
-        const cell = createEl('div', {
-          class: 'syop-heatmap-cell value-cell',
-          style: { '--accent-color': series.color }
-        },
-        bar,
-        createEl('span', { class: 'syop-heatmap-value' }, `${value.toFixed(1)}%`));
-        rowEl.appendChild(cell);
-      });
+    const svg = d3.select(container).append('svg')
+      .attr('width', width + margin.left + margin.right)
+      .attr('height', height + margin.top + margin.bottom)
+      .append('g')
+      .attr('transform', `translate(${margin.left},${margin.top})`);
 
-      grid.appendChild(rowEl);
-    });
+    const x = d3.scaleBand()
+      .domain(data.map(d => d.SYOP))
+      .range([0, width])
+      .padding(0.1);
 
-    scroll.appendChild(grid);
-    container.appendChild(scroll);
+    const y = d3.scaleLinear()
+      .domain([0, 100])
+      .range([height, 0]);
+
+    const area = d3.area()
+      .x(d => x(d.data.SYOP) + x.bandwidth() / 2)
+      .y0(d => y(d[0]))
+      .y1(d => y(d[1]))
+      .curve(d3.curveCatmullRom.alpha(0.5));
+
+    svg.selectAll('.layer')
+      .data(stackedData)
+      .enter().append('path')
+      .attr('class', 'layer')
+      .attr('d', area)
+      .style('fill', d => colors[d.key]);
+
+    // Add X axis
+    svg.append('g')
+      .attr('transform', `translate(0,${height})`)
+      .call(d3.axisBottom(x))
+      .selectAll('text')
+      .style('fill', '#A7AFD4')
+      .style('font-size', '12px');
+
+    // Add Y axis
+    svg.append('g')
+      .call(d3.axisLeft(y).ticks(5).tickFormat(d => d + '%'))
+      .selectAll('text')
+      .style('fill', '#A7AFD4')
+      .style('font-size', '12px');
+
+    // Remove axis lines
+    svg.selectAll('.domain').remove();
+    svg.selectAll('.tick line').remove();
+
+    // Add X axis label
+    svg.append('text')
+      .attr('text-anchor', 'middle')
+      .attr('x', width / 2)
+      .attr('y', height + margin.bottom - 10)
+      .text('Significant Years of Production (SYOP)')
+      .style('fill', '#A7AFD4')
+      .style('font-size', '14px');
   }
 
   function renderGauges() {
@@ -938,7 +970,7 @@
     }
     resizeTimer = window.setTimeout(() => {
       renderSunburst();
-      renderBarChart();
+      renderStackedAreaChart();
       renderGauges();
       renderDraftOverall();
       renderDraftPositional();
@@ -988,7 +1020,7 @@
           renderDraftPositional();
         } else {
           renderSunburst();
-          renderBarChart();
+          renderStackedAreaChart();
           renderGauges();
         }
       });
@@ -1027,7 +1059,7 @@
     applyUsernameFromQuery();
     setupTabs();
     renderSunburst();
-    renderBarChart();
+    renderStackedAreaChart();
     renderGauges();
     renderDraftOverall();
     renderDraftPositional();
