@@ -106,6 +106,18 @@
     { key: 'TE %', label: 'TE %', color: colors.te }
   ];
 
+  const POSITION_META = [
+    { key: 'QB', label: 'Quarterbacks', short: 'QB', color: colors.qb },
+    { key: 'RB', label: 'Running Backs', short: 'RB', color: colors.rb },
+    { key: 'WR', label: 'Wide Receivers', short: 'WR', color: colors.wr },
+    { key: 'TE', label: 'Tight Ends', short: 'TE', color: colors.te }
+  ];
+
+  const DISTRIBUTION_RANGE = { min: 0, max: 12 };
+
+  let syopDistributionMode = 'chart';
+  let syopDistributionActive = new Set(POSITION_META.map((meta) => meta.key));
+
   let resizeTimer = null;
 
   function createEl(tag, attrs, ...children) {
@@ -202,6 +214,178 @@
     const b = value & 255;
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   }
+
+  function bucketToValue(bucket) {
+    if (!bucket) return 0;
+    if (bucket.includes('+')) {
+      const base = parseFloat(bucket.replace('+', ''));
+      return Number.isFinite(base) ? base + 0.5 : 0;
+    }
+    const numeric = Number(bucket);
+    return Number.isFinite(numeric) ? numeric : 0;
+  }
+
+  function buildBucketsForPosition(positionKey) {
+    const seriesKey = `${positionKey} %`;
+    return SYOP_DATA.map((row) => ({
+      bucket: row.SYOP,
+      value: row[seriesKey] || 0,
+      numeric: bucketToValue(row.SYOP)
+    }));
+  }
+
+  function quantileFromBuckets(buckets, q) {
+    if (!Array.isArray(buckets) || buckets.length === 0) return 0;
+    const total = buckets.reduce((sum, bucket) => sum + bucket.value, 0);
+    if (total <= 0) return 0;
+    const target = q * total;
+    let cumulative = 0;
+    for (let i = 0; i < buckets.length; i++) {
+      const bucket = buckets[i];
+      const next = cumulative + bucket.value;
+      if (target <= next || i === buckets.length - 1) {
+        return bucket.numeric;
+      }
+      cumulative = next;
+    }
+    return buckets[buckets.length - 1].numeric;
+  }
+
+  function shareAtLeastYears(buckets, threshold) {
+    return buckets
+      .filter((bucket) => bucket.numeric >= threshold)
+      .reduce((sum, bucket) => sum + bucket.value, 0);
+  }
+
+  function computeDensityFromBuckets(buckets) {
+    const min = DISTRIBUTION_RANGE.min;
+    const max = DISTRIBUTION_RANGE.max;
+    const steps = 80;
+    const bandwidth = 0.6;
+    const total = buckets.reduce((sum, bucket) => sum + bucket.value, 0) || 1;
+    const points = [];
+
+    for (let i = 0; i <= steps; i++) {
+      const x = min + ((max - min) * i) / steps;
+      let sum = 0;
+      buckets.forEach((bucket) => {
+        const diff = x - bucket.numeric;
+        const weight = bucket.value / total;
+        const density = Math.exp(-0.5 * (diff / bandwidth) ** 2);
+        sum += weight * density;
+      });
+      points.push({ x, value: sum });
+    }
+
+    const maxDensity = points.reduce((maxValue, point) => Math.max(maxValue, point.value), 0) || 1;
+    return points.map((point) => ({
+      x: point.x,
+      value: maxDensity > 0 ? point.value / maxDensity : 0
+    }));
+  }
+
+  function generateSyntheticPlayers(buckets, meta) {
+    const totalPercent = buckets.reduce((sum, bucket) => sum + bucket.value, 0) || 1;
+    const baseCount = 100;
+    const raw = buckets.map((bucket) => (bucket.value / totalPercent) * baseCount);
+    const counts = raw.map((value, index) => {
+      const floored = Math.floor(value);
+      if (floored <= 0 && value > 0) return 1;
+      return floored;
+    });
+
+    let allocated = counts.reduce((sum, count) => sum + count, 0);
+    const target = baseCount;
+
+    if (allocated < target) {
+      const remainders = raw
+        .map((value, index) => ({ index, remainder: value - Math.floor(value) }))
+        .sort((a, b) => b.remainder - a.remainder);
+      let needed = target - allocated;
+      let pointer = 0;
+      while (needed > 0 && remainders.length > 0) {
+        const { index } = remainders[pointer % remainders.length];
+        counts[index] += 1;
+        needed -= 1;
+        pointer += 1;
+      }
+      allocated = counts.reduce((sum, count) => sum + count, 0);
+    }
+
+    if (allocated > target) {
+      const remainders = raw
+        .map((value, index) => ({ index, remainder: value - Math.floor(value) }))
+        .sort((a, b) => a.remainder - b.remainder);
+      let excess = allocated - target;
+      let pointer = 0;
+      while (excess > 0 && remainders.length > 0) {
+        const { index } = remainders[pointer % remainders.length];
+        if (counts[index] > 1) {
+          counts[index] -= 1;
+          excess -= 1;
+        }
+        pointer += 1;
+        if (pointer > remainders.length * 4) {
+          break;
+        }
+      }
+    }
+
+    const players = [];
+    counts.forEach((count, bucketIndex) => {
+      const bucket = buckets[bucketIndex];
+      const sharePerPlayer = count > 0 ? bucket.value / count : 0;
+      for (let i = 0; i < count; i++) {
+        const sequence = players.length + 1;
+        players.push({
+          id: `${meta.key}-${sequence}`,
+          name: `${meta.short} Player ${String(sequence).padStart(2, '0')}`,
+          years: bucket.numeric,
+          bucketLabel: bucket.bucket,
+          share: sharePerPlayer,
+          position: meta.key
+        });
+      }
+    });
+
+    return players;
+  }
+
+  function formatYearsLabel(bucketLabel) {
+    if (!bucketLabel) return '0';
+    if (bucketLabel.includes('+')) return `${bucketLabel} years`;
+    if (bucketLabel === '1') return '1 year';
+    return `${bucketLabel} years`;
+  }
+
+  function formatPercent(value) {
+    return `${value.toFixed(1)}%`;
+  }
+
+  const SYOP_DISTRIBUTIONS = new Map(POSITION_META.map((meta) => {
+    const buckets = buildBucketsForPosition(meta.key);
+    const density = computeDensityFromBuckets(buckets);
+    const players = generateSyntheticPlayers(buckets, meta);
+    const totalPercent = buckets.reduce((sum, bucket) => sum + bucket.value, 0);
+    const median = quantileFromBuckets(buckets, 0.5);
+    const q1 = quantileFromBuckets(buckets, 0.25);
+    const q3 = quantileFromBuckets(buckets, 0.75);
+    const shareTwoPlus = shareAtLeastYears(buckets, 2);
+
+    return [meta.key, {
+      meta,
+      buckets,
+      density,
+      players,
+      summary: {
+        totalPercent,
+        shareTwoPlus,
+        median,
+        q1,
+        q3
+      }
+    }];
+  }));
 
   function stripYearSuffix(text) {
     if (typeof text !== 'string') return text;
@@ -406,57 +590,437 @@
     container.appendChild(svg);
   }
 
-  function renderBarChart() {
+  function renderSyopDistribution() {
     const container = document.getElementById('syop-bar-chart');
     if (!container) return;
+
+    const activeMetas = POSITION_META.filter((meta) => syopDistributionActive.has(meta.key));
     container.innerHTML = '';
 
-    const scroll = createEl('div', { class: 'syop-heatmap-scroll' });
-    const grid = createEl('div', { class: 'syop-heatmap' });
+    const header = createEl('div', { class: 'syop-distribution-header' });
 
-    const headerRow = createEl('div', { class: 'syop-heatmap-row syop-heatmap-header' },
-      createEl('div', { class: 'syop-heatmap-cell bucket-cell' }, 'SYOP')
-    );
-    SERIES_CONFIG.forEach((series) => {
-      headerRow.appendChild(createEl('div', {
-        class: 'syop-heatmap-cell position-header',
-        style: { '--header-accent': series.color }
-      }, series.label.replace('%', '').trim()));
+    const legend = createEl('div', {
+      class: 'syop-distribution-legend',
+      role: 'group',
+      'aria-label': 'Filter positions'
     });
-    grid.appendChild(headerRow);
 
-    const maxValue = Math.max(...SYOP_DATA.flatMap((row) => SERIES_CONFIG.map((series) => row[series.key] || 0)));
+    POSITION_META.forEach((meta) => {
+      const isActive = syopDistributionActive.has(meta.key);
+      const button = createEl('button', {
+        type: 'button',
+        class: `syop-legend-button${isActive ? ' active' : ''}`,
+        style: { '--legend-color': meta.color },
+        'aria-pressed': String(isActive),
+        'data-position': meta.key
+      }, meta.short);
 
-    SYOP_DATA.forEach((row) => {
-      const rowEl = createEl('div', { class: 'syop-heatmap-row' });
-      rowEl.appendChild(createEl('div', { class: 'syop-heatmap-cell bucket-cell' }, row.SYOP));
-
-      SERIES_CONFIG.forEach((series) => {
-        const value = row[series.key] || 0;
-        const intensity = maxValue > 0 ? value / maxValue : 0;
-        const width = Math.max(12, Math.min(100, intensity * 100));
-        const fill = hexToRgba(series.color, 0.35 + 0.55 * intensity);
-        const bar = createEl('span', {
-          class: 'syop-heatmap-bar',
-          style: {
-            width: `${width}%`,
-            background: fill
-          }
-        });
-        const cell = createEl('div', {
-          class: 'syop-heatmap-cell value-cell',
-          style: { '--accent-color': series.color }
-        },
-        bar,
-        createEl('span', { class: 'syop-heatmap-value' }, `${value.toFixed(1)}%`));
-        rowEl.appendChild(cell);
+      button.addEventListener('click', () => {
+        const next = new Set(syopDistributionActive);
+        if (next.has(meta.key)) {
+          next.delete(meta.key);
+        } else {
+          next.add(meta.key);
+        }
+        if (next.size === 0) {
+          return;
+        }
+        syopDistributionActive = next;
+        renderSyopDistribution();
       });
 
-      grid.appendChild(rowEl);
+      legend.appendChild(button);
     });
 
-    scroll.appendChild(grid);
-    container.appendChild(scroll);
+    const viewToggle = createEl('button', {
+      type: 'button',
+      class: 'syop-view-toggle',
+      'aria-pressed': String(syopDistributionMode === 'table')
+    }, syopDistributionMode === 'table' ? 'View chart' : 'View as table');
+
+    viewToggle.addEventListener('click', () => {
+      syopDistributionMode = syopDistributionMode === 'table' ? 'chart' : 'table';
+      renderSyopDistribution();
+    });
+
+    header.appendChild(legend);
+    header.appendChild(viewToggle);
+    container.appendChild(header);
+
+    if (syopDistributionMode === 'table') {
+      renderDistributionTable(container, activeMetas);
+      return;
+    }
+
+    renderDistributionPanels(container, activeMetas);
+  }
+
+  function renderDistributionPanels(container, activeMetas) {
+    if (activeMetas.length === 0) {
+      container.appendChild(createEl('p', { class: 'syop-empty-state' }, 'Select at least one position to view the distribution.'));
+      return;
+    }
+
+    const grid = createEl('div', { class: 'syop-violin-grid' });
+    container.appendChild(grid);
+
+    const tooltip = createEl('div', {
+      class: 'syop-swarm-tooltip',
+      role: 'status',
+      'aria-hidden': 'true'
+    });
+    container.appendChild(tooltip);
+
+    const panels = activeMetas.map((meta) => {
+      const data = SYOP_DISTRIBUTIONS.get(meta.key);
+      const panel = createEl('section', {
+        class: 'syop-violin-panel',
+        'data-position': meta.key
+      });
+
+      const panelHeader = createEl('header', { class: 'syop-violin-panel-header' },
+        createEl('h4', null, meta.label),
+        createEl('span', {
+          class: 'syop-summary-chip',
+          style: { '--chip-accent': meta.color }
+        }, `≥2 SYOP: ${formatPercent(data.summary.shareTwoPlus)}`)
+      );
+
+      const description = createEl('p', { class: 'syop-violin-meta' },
+        `Median ${data.summary.median.toFixed(1)} yrs · IQR ${data.summary.q1.toFixed(1)} – ${data.summary.q3.toFixed(1)} yrs`
+      );
+
+      const chartWrapper = createEl('div', {
+        class: 'syop-violin-chart',
+        role: 'img',
+        'aria-label': `${meta.label} SYOP distribution`
+      });
+
+      panel.appendChild(panelHeader);
+      panel.appendChild(description);
+      panel.appendChild(chartWrapper);
+      grid.appendChild(panel);
+
+      return { meta, data, chartWrapper, panel };
+    });
+
+    panels.forEach((entry) => {
+      renderDistributionChart(entry, tooltip);
+    });
+  }
+
+  function renderDistributionTable(container, activeMetas) {
+    const tableWrapper = createEl('div', { class: 'syop-table-wrapper' });
+    const table = createEl('table', { class: 'syop-table' });
+    const caption = createEl('caption', null, 'SYOP positional distribution (share of players per bucket)');
+    table.appendChild(caption);
+
+    const thead = createEl('thead');
+    const headerRow = createEl('tr');
+    headerRow.appendChild(createEl('th', { scope: 'col' }, 'SYOP bucket'));
+    activeMetas.forEach((meta) => {
+      headerRow.appendChild(createEl('th', { scope: 'col' }, meta.short));
+    });
+    thead.appendChild(headerRow);
+    table.appendChild(thead);
+
+    const tbody = createEl('tbody');
+    SYOP_DATA.forEach((row) => {
+      const tr = createEl('tr');
+      tr.appendChild(createEl('th', { scope: 'row' }, row.SYOP));
+      activeMetas.forEach((meta) => {
+        const buckets = SYOP_DISTRIBUTIONS.get(meta.key)?.buckets || [];
+        const bucket = buckets.find((item) => item.bucket === row.SYOP);
+        tr.appendChild(createEl('td', null, bucket ? formatPercent(bucket.value) : '—'));
+      });
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+
+    const tfoot = createEl('tfoot');
+    const summaryRow = createEl('tr', { class: 'syop-table-summary' });
+    summaryRow.appendChild(createEl('th', { scope: 'row' }, '≥2 SYOP share'));
+    activeMetas.forEach((meta) => {
+      const data = SYOP_DISTRIBUTIONS.get(meta.key);
+      summaryRow.appendChild(createEl('td', null, data ? formatPercent(data.summary.shareTwoPlus) : '—'));
+    });
+    tfoot.appendChild(summaryRow);
+    table.appendChild(tfoot);
+
+    tableWrapper.appendChild(table);
+    container.appendChild(tableWrapper);
+  }
+
+  function renderDistributionChart(entry, tooltip) {
+    const { meta, data, chartWrapper } = entry;
+    const bounds = chartWrapper.getBoundingClientRect();
+    const fallbackWidth = 320;
+    const width = Math.max(260, Math.round(bounds.width || fallbackWidth));
+    const height = width < 320 ? 220 : 260;
+    const margin = width < 320
+      ? { top: 28, right: 18, bottom: 38, left: 18 }
+      : { top: 32, right: 24, bottom: 42, left: 24 };
+
+    const chartWidth = width - margin.left - margin.right;
+    const chartHeight = height - margin.top - margin.bottom;
+    const centerY = margin.top + chartHeight / 2;
+    const amplitude = Math.max(24, chartHeight / 2 - 16);
+    const dotRadius = width < 280 ? 4.2 : width < 360 ? 5 : 6.2;
+
+    const scaleX = (value) => {
+      const domain = DISTRIBUTION_RANGE.max - DISTRIBUTION_RANGE.min;
+      if (domain <= 0) return margin.left;
+      const clamped = Math.min(DISTRIBUTION_RANGE.max, Math.max(DISTRIBUTION_RANGE.min, value));
+      return margin.left + ((clamped - DISTRIBUTION_RANGE.min) / domain) * chartWidth;
+    };
+
+    chartWrapper.innerHTML = '';
+    chartWrapper.style.height = `${height}px`;
+
+    const svg = createSVG('svg', {
+      class: 'syop-violin-svg',
+      viewBox: `0 0 ${width} ${height}`,
+      width: String(width),
+      height: String(height),
+      focusable: 'false',
+      'aria-hidden': 'true'
+    });
+
+    const defs = createSVG('defs');
+    const gradient = createSVG('linearGradient', {
+      id: `violin-gradient-${meta.key}`,
+      x1: '0',
+      x2: '0',
+      y1: '0',
+      y2: '1'
+    });
+    gradient.appendChild(createSVG('stop', { offset: '0%', 'stop-color': hexToRgba(meta.color, 0.75) }));
+    gradient.appendChild(createSVG('stop', { offset: '100%', 'stop-color': hexToRgba(meta.color, 0.2) }));
+    defs.appendChild(gradient);
+    svg.appendChild(defs);
+
+    const group = createSVG('g');
+    svg.appendChild(group);
+
+    const railsStart = Math.ceil(DISTRIBUTION_RANGE.min);
+    const railsEnd = Math.floor(DISTRIBUTION_RANGE.max);
+    for (let year = railsStart; year <= railsEnd; year++) {
+      const x = scaleX(year);
+      group.appendChild(createSVG('line', {
+        x1: x,
+        x2: x,
+        y1: margin.top - 4,
+        y2: margin.top + chartHeight + 6,
+        stroke: year === 0 ? 'rgba(255,255,255,0.32)' : colors.grid,
+        'stroke-dasharray': year % 2 === 0 ? '2 4' : '1 6'
+      }));
+
+      if (year % 2 === 0 || year <= 4) {
+        group.appendChild(createSVG('text', {
+          x,
+          y: height - 12,
+          fill: colors.subtext,
+          'font-size': '11',
+          'text-anchor': 'middle'
+        }, year >= 12 ? '12+' : String(year)));
+      }
+    }
+
+    group.appendChild(createSVG('line', {
+      x1: margin.left,
+      x2: margin.left + chartWidth,
+      y1: centerY,
+      y2: centerY,
+      stroke: 'rgba(148, 163, 255, 0.25)',
+      'stroke-dasharray': '4 6'
+    }));
+
+    const q1x = scaleX(data.summary.q1);
+    const q3x = scaleX(data.summary.q3);
+    group.appendChild(createSVG('rect', {
+      x: Math.min(q1x, q3x),
+      y: centerY - amplitude - 6,
+      width: Math.max(6, Math.abs(q3x - q1x)),
+      height: (amplitude + 6) * 2,
+      fill: hexToRgba(meta.color, 0.16),
+      rx: 10,
+      ry: 10
+    }));
+
+    const densityPath = describeDensityPath(data.density, scaleX, centerY, amplitude);
+    if (densityPath) {
+      group.appendChild(createSVG('path', {
+        d: densityPath,
+        fill: `url(#violin-gradient-${meta.key})`,
+        stroke: hexToRgba(meta.color, 0.85),
+        'stroke-width': '1.4',
+        opacity: '0.95'
+      }));
+    }
+
+    const medianX = scaleX(data.summary.median);
+    group.appendChild(createSVG('line', {
+      x1: medianX,
+      x2: medianX,
+      y1: centerY - amplitude - 8,
+      y2: centerY + amplitude + 8,
+      stroke: meta.color,
+      'stroke-width': '2.2'
+    }));
+
+    group.appendChild(createSVG('path', {
+      d: describeMedianDiamond(medianX, centerY, 8),
+      fill: colors.bg,
+      stroke: meta.color,
+      'stroke-width': '2'
+    }));
+
+    group.appendChild(createSVG('text', {
+      x: margin.left + chartWidth / 2,
+      y: height - 2,
+      fill: colors.subtext,
+      'font-size': '11',
+      'font-weight': '600',
+      'text-anchor': 'middle'
+    }, 'SYOP years'));
+
+    chartWrapper.appendChild(svg);
+
+    const swarmLayer = createEl('div', { class: 'syop-swarm-layer' });
+    swarmLayer.style.height = `${height}px`;
+    chartWrapper.appendChild(swarmLayer);
+
+    const swarmPoints = layoutSwarmPoints(data.players, scaleX, centerY, dotRadius);
+    swarmPoints.forEach((point) => {
+      const shareValue = point.player.share;
+      const shareText = shareValue >= 1 ? shareValue.toFixed(1) : shareValue.toFixed(2);
+      const dot = createEl('button', {
+        type: 'button',
+        class: 'syop-swarm-dot',
+        style: {
+          left: `${point.x - dotRadius}px`,
+          top: `${point.y - dotRadius}px`,
+          width: `${dotRadius * 2}px`,
+          height: `${dotRadius * 2}px`
+        },
+        'data-player-id': point.player.id,
+        'aria-label': `${point.player.name} — ${formatYearsLabel(point.player.bucketLabel)} (≈ ${shareText}% of ${meta.short})`
+      });
+      dot.style.setProperty('--dot-color', meta.color);
+      swarmLayer.appendChild(dot);
+
+      dot.addEventListener('mouseenter', () => showSwarmTooltip(tooltip, dot, meta, point.player));
+      dot.addEventListener('mouseleave', () => hideSwarmTooltip(tooltip));
+      dot.addEventListener('focus', () => showSwarmTooltip(tooltip, dot, meta, point.player));
+      dot.addEventListener('blur', () => hideSwarmTooltip(tooltip));
+    });
+  }
+
+  function describeDensityPath(points, scaleX, centerY, amplitude) {
+    if (!points || points.length === 0) return '';
+    const upper = points.map((point) => `${scaleX(point.x)} ${centerY - point.value * amplitude}`);
+    const lower = points
+      .slice()
+      .reverse()
+      .map((point) => `${scaleX(point.x)} ${centerY + point.value * amplitude}`);
+    if (upper.length === 0 || lower.length === 0) return '';
+    return `M ${upper[0]} L ${upper.slice(1).join(' L ')} L ${lower.join(' L ')} Z`;
+  }
+
+  function describeMedianDiamond(cx, cy, size) {
+    const half = size / 2;
+    return `M ${cx} ${cy - half} L ${cx + half} ${cy} L ${cx} ${cy + half} L ${cx - half} ${cy} Z`;
+  }
+
+  function layoutSwarmPoints(players, scaleX, centerY, radius) {
+    const placed = [];
+    const verticalStep = radius * 1.9;
+    const jitter = radius * 0.85;
+    const minX = scaleX(DISTRIBUTION_RANGE.min);
+    const maxX = scaleX(DISTRIBUTION_RANGE.max);
+    return players.map((player) => {
+      const hash = hashString(player.id);
+      const offset = ((hash % 1000) / 999 - 0.5) * jitter;
+      const baseX = scaleX(player.years);
+      const x = Math.min(maxX, Math.max(minX, baseX + offset));
+      let level = 0;
+      let direction = 1;
+      let y = centerY;
+      let attempts = 0;
+
+      while (placed.some((other) => Math.hypot(other.x - x, other.y - y) < radius * 2.05)) {
+        level += 1;
+        direction *= -1;
+        y = centerY + direction * level * verticalStep;
+        attempts += 1;
+        if (attempts > 80) {
+          break;
+        }
+      }
+
+      const point = { player, x, y };
+      placed.push(point);
+      return point;
+    });
+  }
+
+  function hashString(input) {
+    let hash = 0;
+    for (let i = 0; i < input.length; i++) {
+      hash = (hash << 5) - hash + input.charCodeAt(i);
+      hash |= 0;
+    }
+    return Math.abs(hash);
+  }
+
+  function showSwarmTooltip(tooltip, dot, meta, player) {
+    if (!tooltip || !tooltip.parentElement) return;
+    const host = tooltip.parentElement;
+    const parent = dot.parentElement;
+    if (parent) {
+      parent.querySelectorAll('.syop-swarm-dot.is-active').forEach((activeDot) => {
+        activeDot.classList.remove('is-active');
+      });
+    }
+    dot.classList.add('is-active');
+
+    tooltip.innerHTML = '';
+    const shareText = player.share >= 1 ? player.share.toFixed(1) : player.share.toFixed(2);
+    tooltip.appendChild(createEl('div', { class: 'syop-tooltip-name' }, player.name));
+    tooltip.appendChild(createEl('div', { class: 'syop-tooltip-years' }, formatYearsLabel(player.bucketLabel)));
+    tooltip.appendChild(createEl('div', { class: 'syop-tooltip-share' }, `≈ ${shareText}% of ${meta.short}`));
+
+    tooltip.classList.add('visible');
+    tooltip.setAttribute('aria-hidden', 'false');
+    tooltip.dataset.activeId = player.id;
+
+    const hostRect = host.getBoundingClientRect();
+    const dotRect = dot.getBoundingClientRect();
+    tooltip.style.left = '0px';
+    tooltip.style.top = '0px';
+
+    const tooltipRect = tooltip.getBoundingClientRect();
+    const desiredLeft = dotRect.left - hostRect.left - tooltipRect.width / 2 + dotRect.width / 2;
+    const maxLeft = hostRect.width - tooltipRect.width - 8;
+    const left = Math.max(8, Math.min(desiredLeft, maxLeft));
+    let top = dotRect.top - hostRect.top - tooltipRect.height - 12;
+    if (top < 8) {
+      top = dotRect.top - hostRect.top + dotRect.height + 12;
+    }
+
+    tooltip.style.left = `${left}px`;
+    tooltip.style.top = `${top}px`;
+  }
+
+  function hideSwarmTooltip(tooltip) {
+    if (!tooltip || !tooltip.parentElement) return;
+    const host = tooltip.parentElement;
+    host.querySelectorAll('.syop-swarm-dot.is-active').forEach((activeDot) => {
+      activeDot.classList.remove('is-active');
+    });
+    tooltip.classList.remove('visible');
+    tooltip.setAttribute('aria-hidden', 'true');
+    tooltip.removeAttribute('data-active-id');
   }
 
   function renderGauges() {
@@ -938,7 +1502,7 @@
     }
     resizeTimer = window.setTimeout(() => {
       renderSunburst();
-      renderBarChart();
+      renderSyopDistribution();
       renderGauges();
       renderDraftOverall();
       renderDraftPositional();
@@ -988,7 +1552,7 @@
           renderDraftPositional();
         } else {
           renderSunburst();
-          renderBarChart();
+          renderSyopDistribution();
           renderGauges();
         }
       });
@@ -1027,7 +1591,7 @@
     applyUsernameFromQuery();
     setupTabs();
     renderSunburst();
-    renderBarChart();
+    renderSyopDistribution();
     renderGauges();
     renderDraftOverall();
     renderDraftPositional();
