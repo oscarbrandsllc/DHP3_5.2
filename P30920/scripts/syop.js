@@ -65,6 +65,33 @@
     { key: 'TE', percentKey: 'TE %', label: 'Tight Ends', color: colors.te }
   ];
 
+  const BAR_GRADIENTS = {
+    QB: [
+      { offset: '0%', color: 'rgba(59, 228, 228, 0.48)' },
+      { offset: '54%', color: 'rgba(122, 114, 255, 0.44)' },
+      { offset: '100%', color: 'rgba(71, 35, 255, 0.72)' }
+    ],
+    RB: [
+      { offset: '0%', color: 'rgba(255, 117, 209, 0.5)' },
+      { offset: '58%', color: 'rgba(255, 157, 112, 0.44)' },
+      { offset: '100%', color: 'rgba(255, 59, 143, 0.72)' }
+    ],
+    WR: [
+      { offset: '0%', color: 'rgba(124, 131, 255, 0.5)' },
+      { offset: '56%', color: 'rgba(255, 142, 208, 0.46)' },
+      { offset: '100%', color: 'rgba(122, 45, 255, 0.7)' }
+    ],
+    TE: [
+      { offset: '0%', color: 'rgba(70, 231, 255, 0.5)' },
+      { offset: '60%', color: 'rgba(134, 255, 205, 0.44)' },
+      { offset: '100%', color: 'rgba(43, 196, 165, 0.7)' }
+    ],
+    DEFAULT: [
+      { offset: '0%', color: 'rgba(124, 131, 255, 0.45)' },
+      { offset: '100%', color: 'rgba(92, 75, 255, 0.68)' }
+    ]
+  };
+
   const POSITION_TOTALS = {
     QB: 52,
     RB: 96,
@@ -662,6 +689,33 @@
       class: 'syop-bar-svg'
     });
 
+    const gradientStops = BAR_GRADIENTS[config.key] || BAR_GRADIENTS.DEFAULT;
+    const gradientId = `syop-bar-gradient-${config.key.toLowerCase()}`;
+    const defs = createSVG('defs');
+    const gradient = createSVG('linearGradient', {
+      id: gradientId,
+      gradientUnits: 'userSpaceOnUse',
+      x1: margin.left,
+      y1: margin.top + chartHeight,
+      x2: margin.left,
+      y2: margin.top
+    });
+
+    gradientStops.forEach((stop) => {
+      if (!stop) return;
+      const attrs = {
+        offset: stop.offset ?? '0%',
+        'stop-color': stop.color || '#7C83FF'
+      };
+      if (typeof stop.opacity === 'number') {
+        attrs['stop-opacity'] = String(stop.opacity);
+      }
+      gradient.appendChild(createSVG('stop', attrs));
+    });
+
+    defs.appendChild(gradient);
+    svg.appendChild(defs);
+
     svg.appendChild(createSVG('rect', {
       x: margin.left,
       y: margin.top,
@@ -705,17 +759,17 @@
     }));
 
     const axisTitleY = createSVG('text', {
-      x: margin.left - 32,
+      x: margin.left - 33,
       y: margin.top + chartHeight / 2,
       class: 'syop-bar-axis-title syop-bar-axis-title-y',
-      transform: `rotate(-90 ${margin.left - 32} ${margin.top + chartHeight / 2})`
+      transform: `rotate(-90 ${margin.left - 33} ${margin.top + chartHeight / 2})`
     }, document.createTextNode('% of position'));
 
     axisGroup.appendChild(axisTitleY);
 
     const axisTitleX = createSVG('text', {
       x: margin.left + chartWidth / 2,
-      y: margin.top + chartHeight + 46,
+      y: margin.top + chartHeight + 40,
       class: 'syop-bar-axis-title syop-bar-axis-title-x'
     }, document.createTextNode('SYOP'));
 
@@ -725,6 +779,8 @@
 
     const bandWidth = chartWidth / Math.max(distribution.length, 1);
     const barWidth = Math.max(10, bandWidth * 0.64);
+
+    const gradientStroke = (gradientStops[gradientStops.length - 1] || {}).color || config.color;
 
     distribution.forEach((entry, index) => {
       const value = entry.percentage || 0;
@@ -738,15 +794,12 @@
         height: barHeight,
         rx: 6,
         class: 'syop-bar-rect',
-        style: {
-          '--bar-fill': hexToRgba(config.color, 0.38),
-          '--bar-stroke': hexToRgba(config.color, 0.82)
-        },
+        style: `--bar-stroke: ${gradientStroke}; fill: url(#${gradientId});`,
         tabindex: '0',
         role: 'button',
         'aria-label': `${config.key} ${Math.round(value * 10) / 10}%`
       });
-      attachBarInteractions(rect, config, value, tooltip, rootContainer);
+      attachBarInteractions(rect, config, value, tooltip, rootContainer, gradientStroke);
       svg.appendChild(rect);
 
       const labelX = margin.left + index * bandWidth + bandWidth / 2;
@@ -760,9 +813,9 @@
     plotContainer.appendChild(svg);
   }
 
-  function attachBarInteractions(element, config, percentage, tooltip, rootContainer) {
+  function attachBarInteractions(element, config, percentage, tooltip, rootContainer, accentColor) {
     if (!tooltip) return;
-    const color = config.color;
+    const color = accentColor || config.color;
     const formattedPercent = `${Math.round(percentage * 10) / 10}%`;
 
     const hideTooltip = () => {

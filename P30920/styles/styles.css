@@ -4312,23 +4312,23 @@ body[data-page="research"] .app-header {
   gap: 0.26rem;
   padding: 0.62rem 0.8rem;
   border-radius: 12px;
-  background: rgba(12, 15, 28, 0.78);
-  border: 1px solid rgba(132, 146, 255, 0.14);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+  background: rgba(16, 20, 34, 0.32);
+  border: 1px solid rgba(132, 146, 255, 0.24);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03), 0 14px 28px rgba(5, 8, 22, 0.28);
 }
 
 .syop-hero-card .label {
   font-size: 0.64rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: rgba(182, 185, 214, 0.74);
+  color: rgba(182, 185, 214, 0.8);
 }
 
 .syop-hero-card .value {
   font-size: 0.88rem;
   font-weight: 600;
   line-height: 1.28;
-  color: #f4f6ff;
+  color: rgba(232, 235, 255, 0.94);
 }
 
 
@@ -4810,11 +4810,14 @@ body[data-page="research"] .app-header {
   gap: 0.5rem;
   margin-top: 0.35rem;
   padding: 0.75rem 0.9rem;
-  background: rgba(14, 17, 30, 0.78);
-  border: 1px solid rgba(132, 146, 255, 0.14);
+  background: radial-gradient(circle at 18% 22%, rgba(96, 165, 250, 0.18), transparent 58%),
+              radial-gradient(circle at 82% 60%, rgba(192, 132, 252, 0.2), transparent 66%),
+              rgba(18, 21, 38, 0.74);
+  border: 1px solid rgba(132, 146, 255, 0.2);
   border-radius: 16px;
-  box-shadow: 0 12px 24px rgba(4, 7, 16, 0.35);
-  backdrop-filter: blur(12px);
+  box-shadow: 0 18px 32px rgba(7, 10, 20, 0.45);
+  backdrop-filter: blur(12px) saturate(130%);
+  -webkit-backdrop-filter: blur(12px) saturate(130%);
 }
 
 .syop-key-legend .syop-key-grid {
@@ -4822,7 +4825,16 @@ body[data-page="research"] .app-header {
 }
 
 .syop-key-legend .syop-hero-card {
-  background: rgba(10, 13, 24, 0.78);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.24rem;
+  padding: 0.42rem 0.9rem;
+  border-radius: 999px;
+  background: rgba(16, 20, 34, 0.42);
+  border: 1px solid rgba(132, 146, 255, 0.26);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 12px 24px rgba(6, 9, 22, 0.32);
+  text-align: center;
 }
 
 .syop-line-legend {
@@ -5319,8 +5331,8 @@ body[data-page="research"] .app-header {
 }
 
 .syop-bar-area {
-  fill: rgba(14, 18, 34, 0.58);
-  stroke: rgba(255, 255, 255, 0.06);
+  fill: rgba(14, 18, 34, 0.08);
+  stroke: rgba(128, 142, 204, 0.14);
   stroke-width: 1px;
 }
 
