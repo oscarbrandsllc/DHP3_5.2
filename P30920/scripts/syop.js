@@ -1,5 +1,5 @@
 (function () {
-  const PAGE_ID = 'syop';
+  const PAGE_ID = 'research';
   const SVG_NS = 'http://www.w3.org/2000/svg';
 
   const colors = {
@@ -13,10 +13,10 @@
     accentA: '#3BE4E4',
     accentB: '#7C83FF',
     accentC: '#FF75D1',
-    qb: '#FFC857',
-    rb: '#3BE6C4',
-    wr: '#8B7CFF',
-    te: '#FF7AC7'
+    qb: '#6311ee',
+    rb: '#730fff',
+    wr: '#8021ff',
+    te: '#922fff'
   };
 
   const SUNBURST_NODES = [
@@ -59,10 +59,10 @@
   ];
 
   const GAUGES = [
-    { key: 'TE', value: 4.0, color: colors.te },
-    { key: 'RB', value: 3.39, color: colors.rb },
-    { key: 'WR', value: 4.9, color: colors.wr },
-    { key: 'QB', value: 7.22, color: colors.qb }
+    { key: 'QB', value: 7.22, color: colors.qb },
+    { key: 'RB', value: 3.39, color: colors.wr },
+    { key: 'WR', value: 4.9, color: colors.rb },
+    { key: 'TE', value: 4.0, color: colors.te }
   ];
 
   const DRAFT_OVERALL = [
@@ -91,6 +91,13 @@
     { key: 'TE', color: '#9E5AF7' },
     { key: 'WR', color: '#46E7FF' }
   ];
+
+  const SERIES_LABEL_OFFSETS = {
+    QB: { dx: -14, dy: { compact: -10, regular: -12 }, anchor: 'end' },
+    RB: { dx: 14, dy: { compact: -10, regular: -12 }, anchor: 'start' },
+    TE: { dx: -14, dy: { compact: 16, regular: 18 }, anchor: 'end' },
+    WR: { dx: 14, dy: { compact: 16, regular: 18 }, anchor: 'start' }
+  };
 
   const SERIES_CONFIG = [
     { key: 'QB %', label: 'QB %', color: colors.qb },
@@ -196,6 +203,13 @@
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   }
 
+  function stripYearSuffix(text) {
+    if (typeof text !== 'string') return text;
+    return text.replace(/\s*yrs?\.?/gi, '').trim();
+  }
+
+  const labelAccent = '#9096C0';
+
   function renderSunburst() {
     const container = document.getElementById('syop-sunburst');
     if (!container) return;
@@ -209,13 +223,15 @@
     const size = Math.min(baseSize, constrained);
     const rawScale = size / baseSize;
     const scale = Math.pow(rawScale, 0.85);
-    const pad = 52 * scale;
+    const pad = 64 * scale;
     const cx = size / 2;
     const cy = size / 2;
     const inner1 = 104 * scale;
     const outer1 = 178 * scale;
-    const inner2 = 188 * scale;
-    const outer2 = 246 * scale;
+    const inner2 = 184 * scale;
+    const outer2 = 284 * scale;
+    const ring1Opacity = 0.9;
+    const ring2Opacity = 0.5;
     const centerRadius = 94 * scale;
     const textStroke = 'rgba(11, 14, 22, 0.68)';
     const fontSize = (value, floor = 12) => Math.max(value * scale, floor);
@@ -254,7 +270,7 @@
       const color = seriesColor(segment.node.series);
       const path = createSVG('path', {
         d: arcPath(cx, cy, inner1, outer1, segment.a0, segment.a1),
-        fill: hexToRgba(color, 0.9),
+        fill: hexToRgba(color, ring1Opacity),
         stroke: colors.bg,
         'stroke-width': (1.2 * scale).toFixed(3)
       });
@@ -276,15 +292,16 @@
         'font-family': '"Quicksand", "Product Sans", sans-serif'
       });
       text.appendChild(document.createTextNode(segment.node.label));
-      if (segment.node.subtitle) {
+      const subtitleText = stripYearSuffix(segment.node.subtitle);
+      if (subtitleText && !segment.node.series) {
         const subtitle = createSVG('tspan', {
           x: pos.x,
           dy: `${18 * scale}`,
-          'font-size': fontSize(14, 12.5),
-          'font-weight': '600',
-          fill: colors.subtext,
+          'font-size': fontSize(15, 13),
+          'font-weight': '700',
+          fill: colors.text,
           'font-family': '"Quicksand", "Product Sans", sans-serif'
-        }, document.createTextNode(segment.node.subtitle));
+        }, document.createTextNode(subtitleText));
         text.appendChild(subtitle);
       }
       svg.appendChild(text);
@@ -294,7 +311,7 @@
       const parentColor = seriesColor(segment.parent.node.series);
       const path = createSVG('path', {
         d: arcPath(cx, cy, inner2, outer2, segment.a0, segment.a1),
-        fill: hexToRgba(parentColor, 0.78),
+        fill: hexToRgba(parentColor, ring2Opacity),
         stroke: colors.bg,
         'stroke-width': (1.1 * scale).toFixed(3)
       });
@@ -306,27 +323,31 @@
       const label = createSVG('text', {
         x: center.x,
         y: center.y - 2 * scale,
-        fill: colors.text,
+        fill: labelAccent,
         'text-anchor': 'middle',
         'dominant-baseline': 'middle',
-        'font-size': fontSize(20, 14),
-        'font-weight': '700',
+        'font-size': fontSize(22, 15),
+        'font-weight': '800',
         'paint-order': 'stroke',
         stroke: textStroke,
         'stroke-width': Math.max(0.4, 0.6 * scale).toFixed(3),
         'font-family': '"Quicksand", "Product Sans", sans-serif'
       });
       label.appendChild(document.createTextNode(segment.node.abbr || segment.node.label));
-      const stat = segment.node.stat || (segment.node.subtitle ? segment.node.subtitle.replace(/[^0-9.]+/g, '') : '');
+      const statRaw = segment.node.stat || (segment.node.subtitle ? segment.node.subtitle.replace(/[^0-9.]+/g, '') : '');
+      const stat = stripYearSuffix(statRaw);
       if (stat) {
         label.appendChild(createSVG('tspan', {
           x: center.x,
-          dy: `${18 * scale}`,
-          'font-size': fontSize(16, 13.5),
-          'font-weight': '700',
-          fill: colors.subtext,
+          dy: `${26 * scale}`,
+          'font-size': fontSize(20, 16),
+          'font-weight': '800',
+          fill: colors.text,
+          'paint-order': 'stroke',
+          stroke: textStroke,
+          'stroke-width': Math.max(0.42, 0.65 * scale).toFixed(3),
           'font-family': '"Quicksand", "Product Sans", sans-serif'
-        }, document.createTextNode(`${stat} yrs`)));
+        }, document.createTextNode(stat)));
       }
       svg.appendChild(label);
     });
@@ -448,7 +469,7 @@
       const svg = renderGaugeSVG(gauge);
       const label = createEl('div', { class: 'syop-gauge-label' },
         createEl('span', { class: 'gauge-value', style: { color: gauge.color } }, gauge.key),
-        createEl('span', { class: 'gauge-title', style: { color: colors.subtext } }, 'Avg SYOP (yrs)')
+        createEl('span', { class: 'gauge-title', style: { color: colors.subtext } }, 'AVG SYOP (YRS)')
       );
       gaugeWrapper.appendChild(svg);
       gaugeWrapper.appendChild(label);
@@ -534,25 +555,25 @@
 
     const valueText = createSVG('text', {
       x: cx,
-      y: cy - 64,
-      fill: colors.text,
-      'font-size': '48',
+      y: cy - 34,
+      fill: gauge.color,
+      'font-size': '26',
       'font-weight': '800',
       'text-anchor': 'middle',
       'paint-order': 'stroke',
-      stroke: 'rgba(11, 14, 22, 0.65)',
-      'stroke-width': '0.72'
+      stroke: 'rgba(11, 14, 22, 0.72)',
+      'stroke-width': '0.55'
     }, document.createTextNode(gauge.value.toFixed(2)));
     svg.appendChild(valueText);
 
     svg.appendChild(createSVG('text', {
       x: cx,
-      y: cy - 28,
+      y: cy - 16,
       fill: colors.subtext,
-      'font-size': '15',
+      'font-size': '16',
       'font-weight': '700',
       'text-anchor': 'middle'
-    }, document.createTextNode('yrs')));
+    }, document.createTextNode('YRS')));
 
     return svg;
   }
@@ -705,6 +726,16 @@
     return segments.join(' ');
   }
 
+  function distributeOffsets(count, spacing) {
+    if (count <= 1) return [0];
+    const offsets = [];
+    const midpoint = (count - 1) / 2;
+    for (let i = 0; i < count; i++) {
+      offsets.push((i - midpoint) * spacing);
+    }
+    return offsets;
+  }
+
   function renderDraftPositional() {
     const container = document.getElementById('draft-positional-chart');
     if (!container) return;
@@ -723,6 +754,7 @@
     const fallbackWidth = 360;
     const width = containerWidth > 0 ? containerWidth : fallbackWidth;
     const height = width < 540 ? 300 : 360;
+    const isCompact = width < 560;
     const margin = width < 540
       ? { top: 52, right: 20, bottom: 48, left: 54 }
       : { top: 52, right: 28, bottom: 56, left: 68 };
@@ -770,15 +802,57 @@
       }, document.createTextNode(`RD ${round}`)));
     });
 
-    const dotRadius = width < 560 ? 3.6 : 4.4;
+    const dotRadius = isCompact ? 3.6 : 4.4;
 
-    DRAFT_SERIES.forEach((series) => {
+    const seriesData = DRAFT_SERIES.map((series, seriesIndex) => {
+      const offsetConfig = SERIES_LABEL_OFFSETS[series.key] || null;
+      const baseOffset = offsetConfig
+        ? (isCompact ? offsetConfig.dy.compact : offsetConfig.dy.regular)
+        : (isCompact ? -10 : -12);
+      const labelAnchor = offsetConfig?.anchor || 'middle';
+      const offsetX = offsetConfig?.dx || 0;
+
       const points = DRAFT_POSITIONAL.map((row, index) => ({
         x: index * stepX,
         y: chartHeight - (row[series.key] / 100) * chartHeight,
-        value: row[series.key]
+        value: row[series.key],
+        roundIndex: index,
+        label: {
+          dx: offsetX,
+          anchor: labelAnchor,
+          baseOffset,
+          offset: baseOffset
+        }
       }));
 
+      return { series, seriesIndex, points };
+    });
+
+    const labelGroups = rounds.map(() => new Map());
+    seriesData.forEach((entry) => {
+      entry.points.forEach((point) => {
+        const groups = labelGroups[point.roundIndex];
+        const key = point.value.toFixed(2);
+        if (!groups.has(key)) {
+          groups.set(key, []);
+        }
+        groups.get(key).push({ point, seriesIndex: entry.seriesIndex });
+      });
+    });
+
+    const stackedSpacing = isCompact ? 10 : 13;
+    labelGroups.forEach((groups) => {
+      groups.forEach((group) => {
+        if (group.length <= 1) return;
+        group.sort((a, b) => a.seriesIndex - b.seriesIndex);
+        const adjustments = distributeOffsets(group.length, stackedSpacing);
+        group.forEach((item, index) => {
+          item.point.label.offset = item.point.label.baseOffset + adjustments[index];
+        });
+      });
+    });
+
+    seriesData.forEach(({ series, points }) => {
       const path = createSVG('path', {
         d: catmullRomPath(points),
         fill: 'none',
@@ -798,11 +872,15 @@
           'stroke-width': '2'
         }));
         g.appendChild(createSVG('text', {
-          x: point.x,
-          y: point.y - (width < 560 ? 9 : 11),
-          fill: colors.text,
-          'font-size': '10',
-          'text-anchor': 'middle'
+          x: point.x + point.label.dx,
+          y: point.y + point.label.offset,
+          fill: series.color,
+          'font-size': isCompact ? '9.5' : '10.5',
+          'font-weight': '700',
+          'text-anchor': point.label.anchor,
+          'paint-order': 'stroke',
+          stroke: 'rgba(11, 14, 22, 0.82)',
+          'stroke-width': isCompact ? '0.9' : '1.05'
         }, document.createTextNode(`${point.value}%`)));
       });
     });
@@ -818,12 +896,80 @@
     container.appendChild(svg);
   }
 
+  let keyLegendOriginalParent = null;
+  let keyLegendOriginalNextSibling = null;
+  let keyLegendMediaQuery = null;
+
+  function cacheKeyLegendHome() {
+    if (keyLegendOriginalParent) return;
+    const legend = document.querySelector('.syop-key-legend');
+    if (!legend) return;
+    keyLegendOriginalParent = legend.parentElement;
+    keyLegendOriginalNextSibling = legend.nextElementSibling;
+  }
+
+  function moveKeyLegendIntoGrid() {
+    const legend = document.querySelector('.syop-key-legend');
+    const grid = document.querySelector('.syop-panels-grid');
+    const barPanel = document.getElementById('syop-bar-panel');
+    if (!legend || !grid || !barPanel) return;
+    if (legend.parentElement === grid && legend.nextElementSibling === barPanel) return;
+    grid.insertBefore(legend, barPanel);
+    legend.classList.add('syop-key-inline');
+    legend.classList.remove('syop-key-stacked');
+  }
+
+  function restoreKeyLegendToColumn() {
+    const legend = document.querySelector('.syop-key-legend');
+    if (!legend || !keyLegendOriginalParent) return;
+    if (legend.parentElement === keyLegendOriginalParent) return;
+    if (keyLegendOriginalNextSibling && keyLegendOriginalNextSibling.parentElement === keyLegendOriginalParent) {
+      keyLegendOriginalParent.insertBefore(legend, keyLegendOriginalNextSibling);
+    } else {
+      keyLegendOriginalParent.appendChild(legend);
+    }
+    legend.classList.add('syop-key-stacked');
+    legend.classList.remove('syop-key-inline');
+  }
+
+  function positionSyopKeyLegend() {
+    const legend = document.querySelector('.syop-key-legend');
+    if (!legend) return;
+    const matches = keyLegendMediaQuery ? keyLegendMediaQuery.matches : window.matchMedia('(min-width: 1024px)').matches;
+    if (matches) {
+      moveKeyLegendIntoGrid();
+    } else {
+      restoreKeyLegendToColumn();
+    }
+  }
+
+  function setupKeyLegendPlacement() {
+    cacheKeyLegendHome();
+    if (!keyLegendMediaQuery) {
+      keyLegendMediaQuery = window.matchMedia('(min-width: 1024px)');
+      const listener = (event) => {
+        if (event.matches) {
+          moveKeyLegendIntoGrid();
+        } else {
+          restoreKeyLegendToColumn();
+        }
+      };
+      if (typeof keyLegendMediaQuery.addEventListener === 'function') {
+        keyLegendMediaQuery.addEventListener('change', listener);
+      } else if (typeof keyLegendMediaQuery.addListener === 'function') {
+        keyLegendMediaQuery.addListener(listener);
+      }
+    }
+    positionSyopKeyLegend();
+  }
+
   function handleResize() {
     if (document.body.dataset.page !== PAGE_ID) return;
     if (resizeTimer) {
       window.clearTimeout(resizeTimer);
     }
     resizeTimer = window.setTimeout(() => {
+      positionSyopKeyLegend();
       renderSunburst();
       renderBarChart();
       renderGauges();
@@ -913,6 +1059,7 @@
     if (document.body.dataset.page !== PAGE_ID) return;
     applyUsernameFromQuery();
     setupTabs();
+    setupKeyLegendPlacement();
     renderSunburst();
     renderBarChart();
     renderGauges();
