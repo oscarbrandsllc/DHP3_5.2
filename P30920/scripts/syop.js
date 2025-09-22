@@ -1,5 +1,5 @@
 (function () {
-  const PAGE_ID = 'syop';
+  const PAGE_ID = 'research';
   const SVG_NS = 'http://www.w3.org/2000/svg';
 
   const colors = {
@@ -13,10 +13,10 @@
     accentA: '#3BE4E4',
     accentB: '#7C83FF',
     accentC: '#FF75D1',
-    qb: '#FFC857',
-    rb: '#3BE6C4',
-    wr: '#8B7CFF',
-    te: '#FF7AC7'
+    qb: '#6311ee',
+    rb: '#730fff',
+    wr: '#8021ff',
+    te: '#922fff'
   };
 
   const SUNBURST_NODES = [
@@ -59,10 +59,10 @@
   ];
 
   const GAUGES = [
-    { key: 'TE', value: 4.0, color: colors.te },
-    { key: 'RB', value: 3.39, color: colors.rb },
-    { key: 'WR', value: 4.9, color: colors.wr },
-    { key: 'QB', value: 7.22, color: colors.qb }
+    { key: 'QB', value: 7.22, color: colors.qb },
+    { key: 'RB', value: 3.39, color: colors.wr },
+    { key: 'WR', value: 4.9, color: colors.rb },
+    { key: 'TE', value: 4.0, color: colors.te }
   ];
 
   const DRAFT_OVERALL = [
@@ -91,6 +91,13 @@
     { key: 'TE', color: '#9E5AF7' },
     { key: 'WR', color: '#46E7FF' }
   ];
+
+  const SERIES_LABEL_OFFSETS = {
+    QB: {},
+    RB: {},
+    TE: {},
+    WR: {}
+  };
 
   const SERIES_CONFIG = [
     { key: 'QB %', label: 'QB %', color: colors.qb },
@@ -196,6 +203,13 @@
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   }
 
+  function stripYearSuffix(text) {
+    if (typeof text !== 'string') return text;
+    return text.replace(/\s*yrs?\.?/gi, '').trim();
+  }
+
+  const labelAccent = '#9096C0';
+
   function renderSunburst() {
     const container = document.getElementById('syop-sunburst');
     if (!container) return;
@@ -209,13 +223,15 @@
     const size = Math.min(baseSize, constrained);
     const rawScale = size / baseSize;
     const scale = Math.pow(rawScale, 0.85);
-    const pad = 52 * scale;
+    const pad = 64 * scale;
     const cx = size / 2;
     const cy = size / 2;
     const inner1 = 104 * scale;
     const outer1 = 178 * scale;
-    const inner2 = 188 * scale;
-    const outer2 = 246 * scale;
+    const inner2 = 184 * scale;
+    const outer2 = 284 * scale;
+    const ring1Opacity = 0.9;
+    const ring2Opacity = 0.5;
     const centerRadius = 94 * scale;
     const textStroke = 'rgba(11, 14, 22, 0.68)';
     const fontSize = (value, floor = 12) => Math.max(value * scale, floor);
@@ -254,7 +270,7 @@
       const color = seriesColor(segment.node.series);
       const path = createSVG('path', {
         d: arcPath(cx, cy, inner1, outer1, segment.a0, segment.a1),
-        fill: hexToRgba(color, 0.9),
+        fill: hexToRgba(color, ring1Opacity),
         stroke: colors.bg,
         'stroke-width': (1.2 * scale).toFixed(3)
       });
@@ -276,15 +292,16 @@
         'font-family': '"Quicksand", "Product Sans", sans-serif'
       });
       text.appendChild(document.createTextNode(segment.node.label));
-      if (segment.node.subtitle) {
+      const subtitleText = stripYearSuffix(segment.node.subtitle);
+      if (subtitleText && !segment.node.series) {
         const subtitle = createSVG('tspan', {
           x: pos.x,
           dy: `${18 * scale}`,
-          'font-size': fontSize(14, 12.5),
-          'font-weight': '600',
-          fill: colors.subtext,
+          'font-size': fontSize(15, 13),
+          'font-weight': '700',
+          fill: colors.text,
           'font-family': '"Quicksand", "Product Sans", sans-serif'
-        }, document.createTextNode(segment.node.subtitle));
+        }, document.createTextNode(subtitleText));
         text.appendChild(subtitle);
       }
       svg.appendChild(text);
@@ -294,7 +311,7 @@
       const parentColor = seriesColor(segment.parent.node.series);
       const path = createSVG('path', {
         d: arcPath(cx, cy, inner2, outer2, segment.a0, segment.a1),
-        fill: hexToRgba(parentColor, 0.78),
+        fill: hexToRgba(parentColor, ring2Opacity),
         stroke: colors.bg,
         'stroke-width': (1.1 * scale).toFixed(3)
       });
@@ -306,27 +323,31 @@
       const label = createSVG('text', {
         x: center.x,
         y: center.y - 2 * scale,
-        fill: colors.text,
+        fill: labelAccent,
         'text-anchor': 'middle',
         'dominant-baseline': 'middle',
-        'font-size': fontSize(20, 14),
-        'font-weight': '700',
+        'font-size': fontSize(22, 15),
+        'font-weight': '800',
         'paint-order': 'stroke',
         stroke: textStroke,
         'stroke-width': Math.max(0.4, 0.6 * scale).toFixed(3),
         'font-family': '"Quicksand", "Product Sans", sans-serif'
       });
       label.appendChild(document.createTextNode(segment.node.abbr || segment.node.label));
-      const stat = segment.node.stat || (segment.node.subtitle ? segment.node.subtitle.replace(/[^0-9.]+/g, '') : '');
+      const statRaw = segment.node.stat || (segment.node.subtitle ? segment.node.subtitle.replace(/[^0-9.]+/g, '') : '');
+      const stat = stripYearSuffix(statRaw);
       if (stat) {
         label.appendChild(createSVG('tspan', {
           x: center.x,
-          dy: `${18 * scale}`,
-          'font-size': fontSize(16, 13.5),
-          'font-weight': '700',
-          fill: colors.subtext,
+          dy: `${26 * scale}`,
+          'font-size': fontSize(20, 16),
+          'font-weight': '800',
+          fill: colors.text,
+          'paint-order': 'stroke',
+          stroke: textStroke,
+          'stroke-width': Math.max(0.42, 0.65 * scale).toFixed(3),
           'font-family': '"Quicksand", "Product Sans", sans-serif'
-        }, document.createTextNode(`${stat} yrs`)));
+        }, document.createTextNode(stat)));
       }
       svg.appendChild(label);
     });
@@ -448,7 +469,7 @@
       const svg = renderGaugeSVG(gauge);
       const label = createEl('div', { class: 'syop-gauge-label' },
         createEl('span', { class: 'gauge-value', style: { color: gauge.color } }, gauge.key),
-        createEl('span', { class: 'gauge-title', style: { color: colors.subtext } }, 'Avg SYOP (yrs)')
+        createEl('span', { class: 'gauge-title', style: { color: colors.subtext } }, 'AVG SYOP (YRS)')
       );
       gaugeWrapper.appendChild(svg);
       gaugeWrapper.appendChild(label);
@@ -534,25 +555,25 @@
 
     const valueText = createSVG('text', {
       x: cx,
-      y: cy - 64,
-      fill: colors.text,
-      'font-size': '48',
+      y: cy - 40,
+      fill: gauge.color,
+      'font-size': '30',
       'font-weight': '800',
       'text-anchor': 'middle',
       'paint-order': 'stroke',
-      stroke: 'rgba(11, 14, 22, 0.65)',
-      'stroke-width': '0.72'
+      stroke: 'rgba(11, 14, 22, 0.72)',
+      'stroke-width': '0.6'
     }, document.createTextNode(gauge.value.toFixed(2)));
     svg.appendChild(valueText);
 
     svg.appendChild(createSVG('text', {
       x: cx,
-      y: cy - 28,
+      y: cy - 16,
       fill: colors.subtext,
-      'font-size': '15',
+      'font-size': '16',
       'font-weight': '700',
       'text-anchor': 'middle'
-    }, document.createTextNode('yrs')));
+    }, document.createTextNode('YRS')));
 
     return svg;
   }
@@ -705,6 +726,7 @@
     return segments.join(' ');
   }
 
+  
   function renderDraftPositional() {
     const container = document.getElementById('draft-positional-chart');
     if (!container) return;
@@ -723,6 +745,8 @@
     const fallbackWidth = 360;
     const width = containerWidth > 0 ? containerWidth : fallbackWidth;
     const height = width < 540 ? 300 : 360;
+    const isCompact = width < 560;
+    const tinyMode = width < 420;
     const margin = width < 540
       ? { top: 52, right: 20, bottom: 48, left: 54 }
       : { top: 52, right: 28, bottom: 56, left: 68 };
@@ -736,6 +760,25 @@
 
     const g = createSVG('g', { transform: `translate(${margin.left},${margin.top})` });
     svg.appendChild(g);
+
+    const labelDefs = createSVG('defs');
+    const peakGlow = createSVG('filter', {
+      id: 'draft-label-peak-glow',
+      x: '-40%',
+      y: '-40%',
+      width: '180%',
+      height: '180%'
+    });
+    peakGlow.appendChild(createSVG('feGaussianBlur', {
+      stdDeviation: '2.4',
+      result: 'shadow'
+    }));
+    const merge = createSVG('feMerge');
+    merge.appendChild(createSVG('feMergeNode', { in: 'shadow' }));
+    merge.appendChild(createSVG('feMergeNode', { in: 'SourceGraphic' }));
+    peakGlow.appendChild(merge);
+    labelDefs.appendChild(peakGlow);
+    svg.appendChild(labelDefs);
 
     const rounds = DRAFT_POSITIONAL.map((row) => row.rd);
     const stepX = chartWidth / (rounds.length - 1 || 1);
@@ -770,14 +813,34 @@
       }, document.createTextNode(`RD ${round}`)));
     });
 
-    const dotRadius = width < 560 ? 3.6 : 4.4;
+    const dotRadius = isCompact ? 3.6 : 4.4;
+    const labelEntries = [];
+    const roundLabelGroups = rounds.map(() => []);
 
     DRAFT_SERIES.forEach((series) => {
-      const points = DRAFT_POSITIONAL.map((row, index) => ({
-        x: index * stepX,
-        y: chartHeight - (row[series.key] / 100) * chartHeight,
-        value: row[series.key]
-      }));
+      const points = DRAFT_POSITIONAL.map((row, index) => {
+        const currentValue = row[series.key];
+        const prevRow = DRAFT_POSITIONAL[index - 1];
+        const nextRow = DRAFT_POSITIONAL[index + 1];
+        const prevValue = prevRow ? prevRow[series.key] : null;
+        const nextValue = nextRow ? nextRow[series.key] : null;
+        const slopeSamplePrev = prevValue != null ? prevValue : currentValue;
+        const slopeSampleNext = nextValue != null ? nextValue : currentValue;
+        const slope = slopeSampleNext - slopeSamplePrev;
+        const isPeak = (prevValue == null || currentValue >= prevValue)
+          && (nextValue == null || currentValue >= nextValue);
+        return {
+          x: index * stepX,
+          y: chartHeight - (currentValue / 100) * chartHeight,
+          value: currentValue,
+          roundIndex: index,
+          slope,
+          isPeak,
+          prevValue,
+          nextValue,
+          roundLabel: row.rd
+        };
+      });
 
       const path = createSVG('path', {
         d: catmullRomPath(points),
@@ -797,15 +860,241 @@
           stroke: series.color,
           'stroke-width': '2'
         }));
-        g.appendChild(createSVG('text', {
-          x: point.x,
-          y: point.y - (width < 560 ? 9 : 11),
-          fill: colors.text,
-          'font-size': '10',
-          'text-anchor': 'middle'
-        }, document.createTextNode(`${point.value}%`)));
+
+        const entry = {
+          series,
+          point,
+          offsetX: 0,
+          anchor: 'middle',
+          value: point.value,
+          offsetY: 0,
+          side: null,
+          laneIndex: 0,
+          isPeak: point.isPeak,
+          roundLabel: point.roundLabel
+        };
+
+        labelEntries.push(entry);
+        roundLabelGroups[point.roundIndex].push(entry);
       });
     });
+
+    const laneSettings = {
+      above: {
+        base: tinyMode ? 18 : isCompact ? 20 : 24,
+        spacing: tinyMode ? 11 : isCompact ? 13 : 15
+      },
+      below: {
+        base: tinyMode ? 18 : isCompact ? 20 : 24,
+        spacing: tinyMode ? 11 : isCompact ? 13 : 15
+      }
+    };
+
+    const applyValueJitter = (entries, jitterStep = tinyMode ? 2.4 : 3) => {
+      const valueGroups = new Map();
+      entries.forEach((entry) => {
+        const key = `${entry.value}-${entry.side}`;
+        if (!valueGroups.has(key)) {
+          valueGroups.set(key, []);
+        }
+        valueGroups.get(key).push(entry);
+      });
+      valueGroups.forEach((group) => {
+        if (group.length <= 1) return;
+        group.forEach((entry, index) => {
+          const center = (group.length - 1) / 2;
+          entry.offsetY += (index - center) * jitterStep;
+        });
+      });
+    };
+
+    const assignLanes = (entries, side) => {
+      if (!entries.length) return;
+      const settings = laneSettings[side];
+      entries.forEach((entry, index) => {
+        entry.side = side;
+        entry.laneIndex = index;
+        const laneSpan = settings.base + (side === 'above'
+          ? (entries.length - 1 - index) * settings.spacing
+          : index * settings.spacing);
+        entry.offsetY = side === 'above' ? -laneSpan : laneSpan;
+      });
+      applyValueJitter(entries);
+    };
+
+    const slopeAwareOffset = (entry) => {
+      const slope = entry.point.slope;
+      const slopeThreshold = 3;
+      const horizontalBase = tinyMode ? 13 : isCompact ? 15 : 18;
+      const laneFactor = tinyMode ? 2 : isCompact ? 2.6 : 3.2;
+      const microStagger = tinyMode ? 3 : isCompact ? 3.6 : 4.4;
+      const nearLeft = entry.point.x < (isCompact ? 32 : 40);
+      const nearRight = entry.point.x > (chartWidth - (isCompact ? 32 : 40));
+
+      let direction = 0;
+      if (entry.side === 'above') {
+        if (slope > slopeThreshold) direction = -1;
+        else if (slope < -slopeThreshold) direction = 1;
+      } else {
+        if (slope > slopeThreshold) direction = 1;
+        else if (slope < -slopeThreshold) direction = -1;
+      }
+
+      if (nearLeft) direction = 1;
+      if (nearRight) direction = -1;
+
+      entry.anchor = direction < 0 ? 'end' : direction > 0 ? 'start' : 'middle';
+
+      let offset = 0;
+      if (direction === 0) {
+        offset = (entry.side === 'above' ? -1 : 1) * (horizontalBase * 0.45);
+      } else {
+        offset = direction * (horizontalBase + entry.laneIndex * laneFactor);
+      }
+
+      const stagger = (entry.laneIndex % 2 === 0 ? -1 : 1) * microStagger;
+      offset += direction === 0 ? stagger : stagger * 0.5;
+
+      entry.offsetX = offset;
+    };
+
+    roundLabelGroups.forEach((entries) => {
+      if (!entries.length) return;
+      const sorted = entries.slice().sort((a, b) => {
+        if (b.value === a.value) {
+          return a.series.key.localeCompare(b.series.key);
+        }
+        return b.value - a.value;
+      });
+
+      const topCount = Math.min(2, sorted.length);
+      const topGroup = sorted.slice(0, topCount);
+      const bottomGroup = sorted
+        .slice(topCount)
+        .sort((a, b) => {
+          if (b.value === a.value) {
+            return a.series.key.localeCompare(b.series.key);
+          }
+          return b.value - a.value;
+        });
+
+      assignLanes(topGroup, 'above');
+      assignLanes(bottomGroup, 'below');
+
+      [...topGroup, ...bottomGroup].forEach(slopeAwareOffset);
+    });
+
+    const leadersGroup = createSVG('g', { class: 'draft-label-leaders' });
+    const labelsGroup = createSVG('g', { class: 'draft-label-layer' });
+
+    const fontSize = tinyMode ? 10 : isCompact ? 11.2 : 12.4;
+    const chipPaddingX = tinyMode ? 6 : isCompact ? 7 : 8;
+    const chipPaddingY = tinyMode ? 3 : isCompact ? 3.6 : 4.2;
+
+    labelEntries.forEach((entry) => {
+      const displayValue = Number.isInteger(entry.value) ? entry.value : entry.value.toFixed(1);
+      const labelText = tinyMode ? `${displayValue}` : `${displayValue}%`;
+      const baseX = entry.point.x;
+      const baseY = entry.point.y;
+      let targetX = baseX + entry.offsetX;
+      let targetY = baseY + entry.offsetY;
+
+      const chipGroup = createSVG('g', { class: 'draft-label-chip' });
+      const textEl = createSVG('text', {
+        fill: entry.series.color,
+        'font-size': fontSize.toFixed(1),
+        'font-weight': entry.isPeak ? '700' : '600',
+        'text-anchor': entry.anchor,
+        'dominant-baseline': 'middle'
+      }, document.createTextNode(labelText));
+
+      chipGroup.appendChild(createSVG('title', {}, document.createTextNode(`${entry.series.key} • Round ${entry.roundLabel} • ${displayValue}%`)));
+      chipGroup.appendChild(textEl);
+      labelsGroup.appendChild(chipGroup);
+
+      const measuredWidth = Math.max(textEl.getComputedTextLength(), tinyMode ? 16 : 18);
+      const rectWidth = measuredWidth + chipPaddingX * 2 + (entry.isPeak ? 2 : 0);
+      const rectHeight = fontSize + chipPaddingY * 2 + (entry.isPeak ? 2 : 0);
+
+      let rectX;
+      if (entry.anchor === 'start') {
+        rectX = targetX - chipPaddingX;
+      } else if (entry.anchor === 'end') {
+        rectX = targetX - rectWidth + chipPaddingX;
+      } else {
+        rectX = targetX - rectWidth / 2;
+      }
+      let rectY = targetY - rectHeight / 2;
+
+      const clampXMin = -4;
+      const clampXMax = chartWidth + 4 - rectWidth;
+      if (rectX < clampXMin) {
+        const delta = clampXMin - rectX;
+        rectX += delta;
+        targetX += delta;
+      } else if (rectX > clampXMax) {
+        const delta = rectX - clampXMax;
+        rectX -= delta;
+        targetX -= delta;
+      }
+
+      const clampYMin = -4;
+      const clampYMax = chartHeight + 4 - rectHeight;
+      if (rectY < clampYMin) {
+        const delta = clampYMin - rectY;
+        rectY += delta;
+        targetY += delta;
+      } else if (rectY > clampYMax) {
+        const delta = rectY - clampYMax;
+        rectY -= delta;
+        targetY -= delta;
+      }
+
+      textEl.setAttribute('x', targetX);
+      textEl.setAttribute('y', targetY);
+
+      if (tinyMode) {
+        textEl.appendChild(createSVG('title', {}, document.createTextNode(`${displayValue}%`)));
+      }
+
+      const rect = createSVG('rect', {
+        x: rectX,
+        y: rectY,
+        width: rectWidth,
+        height: rectHeight,
+        rx: entry.isPeak ? '9' : '8',
+        ry: entry.isPeak ? '9' : '8',
+        fill: 'rgba(12, 18, 34, 0.68)',
+        stroke: 'rgba(255, 255, 255, 0.28)',
+        'stroke-width': '0.8'
+      });
+      if (entry.isPeak) {
+        rect.setAttribute('filter', 'url(#draft-label-peak-glow)');
+      }
+      chipGroup.insertBefore(rect, textEl);
+
+      const deltaX = targetX - baseX;
+      const deltaY = targetY - baseY;
+      const leaderDistance = Math.hypot(deltaX, deltaY);
+      if (leaderDistance > 6) {
+        const shorten = Math.min(leaderDistance - 4, tinyMode ? 12 : 18);
+        const ratio = (leaderDistance - shorten) / leaderDistance;
+        const leaderEndX = baseX + deltaX * ratio;
+        const leaderEndY = baseY + deltaY * ratio;
+        leadersGroup.appendChild(createSVG('line', {
+          x1: baseX,
+          y1: baseY,
+          x2: leaderEndX,
+          y2: leaderEndY,
+          stroke: entry.series.color,
+          'stroke-width': '1',
+          'stroke-opacity': '0.65'
+        }));
+      }
+    });
+
+    g.appendChild(leadersGroup);
+    g.appendChild(labelsGroup);
 
     g.appendChild(createSVG('line', {
       x1: 0,
@@ -817,6 +1106,7 @@
 
     container.appendChild(svg);
   }
+
 
   function handleResize() {
     if (document.body.dataset.page !== PAGE_ID) return;
