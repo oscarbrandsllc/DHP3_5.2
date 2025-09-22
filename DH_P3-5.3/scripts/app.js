@@ -5,7 +5,11 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
 
         // --- DOM Elements ---
         const usernameInput = document.getElementById('usernameInput');
+        const fetchRostersButton = document.getElementById('fetchRostersButton');
+        const fetchOwnershipButton = document.getElementById('fetchOwnershipButton');
         const leagueSelect = document.getElementById('leagueSelect');
+        const contextualControls = document.getElementById('contextual-controls');
+        const rosterControls = document.getElementById('rosterControls');
         const loadingIndicator = document.getElementById('loading');
         const welcomeScreen = document.getElementById('welcome-screen');
         const rosterView = document.getElementById('rosterView');
@@ -15,14 +19,19 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
         const compareButton = document.getElementById('compareButton');
         const clearCompareButton = document.getElementById('clearCompareButton');
         const positionalViewBtn = document.getElementById('positionalViewBtn');
-        const lineupViewBtn = document.getElementById('lineupViewBtn');
+        const depthChartViewBtn = document.getElementById('depthChartViewBtn');
+        const viewControls = document.getElementById('view-controls');
         const positionalFiltersContainer = document.getElementById('positional-filters');
         const clearFiltersButton = document.getElementById('clearFiltersButton');
         const tradeSimulator = document.getElementById('tradeSimulator');
         const mainContent = document.getElementById('content');
         const pageType = document.body.dataset.page || 'welcome';
-        const playerSearchInput = document.getElementById('playerSearchInput');
-        const searchButton = document.getElementById('searchButton');
+        const researchButton = document.getElementById('researchButton');
+        const headerQuickLinks = document.getElementById('header-quick-links');
+        const analyzerButtonSlot = document.getElementById('analyzer-button-slot');
+        const researchButtonSlot = document.getElementById('research-button-slot');
+        const analyzerButtonContainer = analyzerButtonSlot?.querySelector('.analyzer-button-container') || null;
+        const researchButtonContainer = researchButtonSlot?.querySelector('.research-button-container') || null;
 
         const gameLogsModal = document.getElementById('game-logs-modal');
         const modalCloseBtn = document.querySelector('.modal-close-btn');
@@ -142,14 +151,42 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
             dropdownMenu.classList.add('hidden');
         });
 
-        searchButton?.addEventListener('click', () => {
-            playerSearchInput.classList.toggle('hidden');
-            if (!playerSearchInput.classList.contains('hidden')) {
-                playerSearchInput.focus();
+        researchButton?.addEventListener('click', () => {
+            if (pageType === 'research') {
+                return;
             }
+            const url = resolveResearchUrl();
+            window.location.href = url;
         });
 
-        playerSearchInput?.addEventListener('input', handlePlayerSearch);
+        if (headerQuickLinks && analyzerButtonSlot && researchButtonSlot && analyzerButtonContainer && researchButtonContainer) {
+            const quickLinksQuery = window.matchMedia('(min-width: 1024px)');
+            const placeQuickLinks = (isDesktop) => {
+                if (isDesktop) {
+                    if (!headerQuickLinks.contains(researchButtonContainer)) {
+                        headerQuickLinks.appendChild(researchButtonContainer);
+                    }
+                    if (!headerQuickLinks.contains(analyzerButtonContainer)) {
+                        headerQuickLinks.appendChild(analyzerButtonContainer);
+                    }
+                } else {
+                    if (!analyzerButtonSlot.contains(analyzerButtonContainer)) {
+                        analyzerButtonSlot.appendChild(analyzerButtonContainer);
+                    }
+                    if (!researchButtonSlot.contains(researchButtonContainer)) {
+                        researchButtonSlot.appendChild(researchButtonContainer);
+                    }
+                }
+            };
+
+            placeQuickLinks(quickLinksQuery.matches);
+            const quickLinksListener = (event) => placeQuickLinks(event.matches);
+            if (typeof quickLinksQuery.addEventListener === 'function') {
+                quickLinksQuery.addEventListener('change', quickLinksListener);
+            } else if (typeof quickLinksQuery.addListener === 'function') {
+                quickLinksQuery.addListener(quickLinksListener);
+            }
+        }
 
         // --- State ---
         let state = { userId: null, leagues: [], players: {}, oneQbData: {}, sflxData: {}, currentLeagueId: null, isSuperflex: false, cache: {}, teamsToCompare: new Set(), isCompareMode: false, currentRosterView: 'positional', activePositions: new Set(), tradeBlock: {}, isTradeCollapsed: false, weeklyStats: {}, playerSeasonStats: {}, playerSeasonRanks: {}, playerWeeklyStats: {}, statsSheetsLoaded: false, seasonRankCache: null, isGameLogModalOpenFromComparison: false };
@@ -178,61 +215,101 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
         };
 
         // --- Event Listeners ---
-        leagueSelect?.addEventListener('change', (e) => {
-            handleLeagueSelect(e);
-            if (e && e.target && e.target.blur) e.target.blur();
-        });
-        rosterGrid?.addEventListener('click', handleTeamSelect);
-        mainContent?.addEventListener('click', handleAssetClickForTrade);
-
-        tradeSimulator.addEventListener('click', (e) => {
-            const compareButton = e.target.closest('#comparePlayersButton');
-            if (compareButton) {
-                const isModalOpen = !playerComparisonModal.classList.contains('hidden');
-
-                if (isModalOpen) {
-                    closeComparisonModal();
-                } else {
-                    const selectedPlayers = Object.values(state.tradeBlock).flat().filter(asset => asset.pos !== 'DP');
-                    if (selectedPlayers.length !== 2) {
-                        showTemporaryTooltip(compareButton, 'Please select exactly 2 players to compare.');
-                    } else {
-                        handlePlayerCompare(e);
-                    }
-                }
-            }
-        });
-
-        compareButton?.addEventListener('click', handleCompareClick);
-        clearCompareButton?.addEventListener('click', () => handleClearCompare(true));
-        positionalViewBtn?.addEventListener('click', () => setRosterView('positional'));
-        lineupViewBtn?.addEventListener('click', () => setRosterView('lineup'));
-        positionalFiltersContainer?.addEventListener('click', handlePositionFilter);
-        clearFiltersButton?.addEventListener('click', handleClearFilters);
-
-        if (gameLogsModal) {
-            modalCloseBtn.addEventListener('click', () => closeModal());
-            modalOverlay.addEventListener('click', () => closeModal());
-            modalInfoBtn.addEventListener('click', () => {
-                statsKeyContainer.classList.toggle('hidden');
+        if (pageType === 'welcome') {
+            fetchRostersButton?.addEventListener('click', () => {
+                const username = usernameInput.value.trim();
+                if (!username) return;
+                window.location.href = `rosters/rosters.html?username=${encodeURIComponent(username)}`;
             });
-            document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape' && !gameLogsModal.classList.contains('hidden')) {
-                    closeModal();
-                }
+            fetchOwnershipButton?.addEventListener('click', () => {
+                const username = usernameInput.value.trim();
+                if (!username) return;
+                window.location.href = `ownership/ownership.html?username=${encodeURIComponent(username)}`;
+            });
+        } else if (pageType === 'research') {
+            fetchRostersButton?.addEventListener('click', () => {
+                const username = usernameInput.value.trim();
+                if (!username) return;
+                window.location.href = `../rosters/rosters.html?username=${encodeURIComponent(username)}`;
+            });
+            fetchOwnershipButton?.addEventListener('click', () => {
+                const username = usernameInput.value.trim();
+                if (!username) return;
+                window.location.href = `../ownership/ownership.html?username=${encodeURIComponent(username)}`;
+            });
+        } else if (pageType === 'rosters') {
+            fetchRostersButton?.addEventListener('click', handleFetchRosters);
+            fetchOwnershipButton?.addEventListener('click', () => {
+                const username = usernameInput.value.trim();
+                if (!username) return;
+                window.location.href = `../ownership/ownership.html?username=${encodeURIComponent(username)}`;
+            });
+        } else if (pageType === 'ownership') {
+            fetchOwnershipButton?.addEventListener('click', handleFetchOwnership);
+            fetchRostersButton?.addEventListener('click', () => {
+                const username = usernameInput.value.trim();
+                if (!username) return;
+                window.location.href = `../rosters/rosters.html?username=${encodeURIComponent(username)}`;
             });
         }
 
-        if (playerComparisonModal) {
-            const closeBtn = playerComparisonModal.querySelector('.modal-close-btn');
-            const overlay = playerComparisonModal.querySelector('.modal-overlay');
-            if (closeBtn) closeBtn.addEventListener('click', () => closeComparisonModal());
-            if (overlay) overlay.addEventListener('click', () => closeComparisonModal());
-            document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape' && !playerComparisonModal.classList.contains('hidden')) {
-                    closeComparisonModal();
+        if (pageType === 'rosters') {
+            leagueSelect?.addEventListener('change', (e) => {
+                handleLeagueSelect(e);
+                if (e && e.target && e.target.blur) e.target.blur();
+            });
+            rosterGrid?.addEventListener('click', handleTeamSelect);
+            mainContent?.addEventListener('click', handleAssetClickForTrade);
+
+            tradeSimulator.addEventListener('click', (e) => {
+                const compareButton = e.target.closest('#comparePlayersButton');
+                if (compareButton) {
+                    const isModalOpen = !playerComparisonModal.classList.contains('hidden');
+
+                    if (isModalOpen) {
+                        closeComparisonModal();
+                    } else {
+                        const selectedPlayers = Object.values(state.tradeBlock).flat().filter(asset => asset.pos !== 'DP');
+                        if (selectedPlayers.length !== 2) {
+                            showTemporaryTooltip(compareButton, 'Please select exactly 2 players to compare.');
+                        } else {
+                            handlePlayerCompare(e);
+                        }
+                    }
                 }
             });
+
+            compareButton?.addEventListener('click', handleCompareClick);
+            clearCompareButton?.addEventListener('click', () => handleClearCompare(true));
+            positionalViewBtn?.addEventListener('click', () => setRosterView('positional'));
+            depthChartViewBtn?.addEventListener('click', () => setRosterView('depth'));
+            positionalFiltersContainer?.addEventListener('click', handlePositionFilter);
+            clearFiltersButton?.addEventListener('click', handleClearFilters);
+
+            if (gameLogsModal) {
+                modalCloseBtn.addEventListener('click', () => closeModal());
+                modalOverlay.addEventListener('click', () => closeModal());
+                modalInfoBtn.addEventListener('click', () => {
+                    statsKeyContainer.classList.toggle('hidden');
+                });
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape' && !gameLogsModal.classList.contains('hidden')) {
+                        closeModal();
+                    }
+                });
+            }
+
+            if (playerComparisonModal) {
+                const closeBtn = playerComparisonModal.querySelector('.modal-close-btn');
+                const overlay = playerComparisonModal.querySelector('.modal-overlay');
+                if (closeBtn) closeBtn.addEventListener('click', () => closeComparisonModal());
+                if (overlay) overlay.addEventListener('click', () => closeComparisonModal());
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape' && !playerComparisonModal.classList.contains('hidden')) {
+                        closeComparisonModal();
+                    }
+                });
+            }
         }
         
         // --- Initialization ---
@@ -265,8 +342,8 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
 
         // --- View Toggling and Main Handlers ---
         function setRosterView(view) {
-            closeComparisonModal();
-            hideLegend();
+    closeComparisonModal();
+    hideLegend();
             state.currentRosterView = view;
             const isPositional = view === 'positional';
             positionalViewBtn.classList.toggle('active', isPositional);
@@ -275,29 +352,35 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
             if (state.currentTeams) {
                 renderAllTeamData(state.currentTeams);
             }
-            // backwards compatibility
-            if (view === 'depth') {
-                setRosterView('lineup');
-            }
         }
 
         function handlePlayerSearch() {
             const searchTerm = playerSearchInput.value.toLowerCase();
             const playerRows = rosterGrid.querySelectorAll('.player-row');
             playerRows.forEach(row => {
-                const playerName = state.players[row.dataset.assetId]?.search_full_name.toLowerCase();
-                if (playerName) {
+                const player = state.players[row.dataset.assetId];
+                if (player) {
+                    const playerName = `${player.first_name} ${player.last_name}`.toLowerCase();
                     if (playerName.includes(searchTerm)) {
-                        row.classList.remove('hidden');
+                        row.style.display = 'flex';
                     } else {
-                        row.classList.add('hidden');
+                        row.style.display = 'none';
                     }
                 }
             });
         }
 
+        function updateButtonStates(activeButton) {
+            const isRosters = activeButton === 'rosters';
+            fetchRostersButton.classList.toggle('active', isRosters);
+            fetchOwnershipButton.classList.toggle('active', !isRosters);
+
+            fetchRostersButton.classList.toggle('counterpart-active', !isRosters);
+            fetchOwnershipButton.classList.toggle('counterpart-active', isRosters);
+        }
+
         async function handleFetchRosters() {
-            hideLegend();
+    hideLegend();
             const username = usernameInput.value.trim();
             if (!username) return;
 
@@ -308,6 +391,8 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
                 const leagues = await fetchUserLeagues(state.userId);
                 state.leagues = leagues.sort((a, b) => a.name.localeCompare(b.name));
 
+                updateButtonStates('rosters');
+                contextualControls.classList.remove('hidden');
                 playerListView.classList.add('hidden');
                 rosterView.classList.remove('hidden');
                 setRosterView('positional'); // Set default view
@@ -325,6 +410,8 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
                         leagueSelect.selectedIndex = 1;
                         await handleLeagueSelect();
                     }
+                } else {
+                    contextualControls.classList.add('hidden');
                 }
             } catch (error) {
                 handleError(error, username);
@@ -342,6 +429,8 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
             try {
                 await fetchAndSetUser(username);
 
+                updateButtonStates('ownership');
+                contextualControls.classList.add('hidden');
                 rosterView.classList.add('hidden');
                 playerListView.classList.remove('hidden');
 
