@@ -1,5 +1,5 @@
 (function () {
-  const PAGE_ID = 'syop';
+  const PAGE_ID = 'research';
   const SVG_NS = 'http://www.w3.org/2000/svg';
 
   const colors = {
@@ -13,10 +13,10 @@
     accentA: '#3BE4E4',
     accentB: '#7C83FF',
     accentC: '#FF75D1',
-    qb: '#FFC857',
-    rb: '#3BE6C4',
-    wr: '#8B7CFF',
-    te: '#FF7AC7'
+    qb: '#6311ee',
+    rb: '#730fff',
+    wr: '#8021ff',
+    te: '#922fff'
   };
 
   const SUNBURST_NODES = [
@@ -59,10 +59,10 @@
   ];
 
   const GAUGES = [
-    { key: 'TE', value: 4.0, color: colors.te },
-    { key: 'RB', value: 3.39, color: colors.rb },
-    { key: 'WR', value: 4.9, color: colors.wr },
-    { key: 'QB', value: 7.22, color: colors.qb }
+    { key: 'QB', value: 7.22, color: colors.qb },
+    { key: 'RB', value: 3.39, color: colors.wr },
+    { key: 'WR', value: 4.9, color: colors.rb },
+    { key: 'TE', value: 4.0, color: colors.te }
   ];
 
   const DRAFT_OVERALL = [
@@ -196,6 +196,13 @@
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   }
 
+  function stripYearSuffix(text) {
+    if (typeof text !== 'string') return text;
+    return text.replace(/\s*yrs?\.?/gi, '').trim();
+  }
+
+  const labelAccent = '#9096C0';
+
   function renderSunburst() {
     const container = document.getElementById('syop-sunburst');
     if (!container) return;
@@ -209,13 +216,15 @@
     const size = Math.min(baseSize, constrained);
     const rawScale = size / baseSize;
     const scale = Math.pow(rawScale, 0.85);
-    const pad = 52 * scale;
+    const pad = 64 * scale;
     const cx = size / 2;
     const cy = size / 2;
     const inner1 = 104 * scale;
     const outer1 = 178 * scale;
-    const inner2 = 188 * scale;
-    const outer2 = 246 * scale;
+    const inner2 = 184 * scale;
+    const outer2 = 284 * scale;
+    const ring1Opacity = 0.9;
+    const ring2Opacity = 0.5;
     const centerRadius = 94 * scale;
     const textStroke = 'rgba(11, 14, 22, 0.68)';
     const fontSize = (value, floor = 12) => Math.max(value * scale, floor);
@@ -254,7 +263,7 @@
       const color = seriesColor(segment.node.series);
       const path = createSVG('path', {
         d: arcPath(cx, cy, inner1, outer1, segment.a0, segment.a1),
-        fill: hexToRgba(color, 0.9),
+        fill: hexToRgba(color, ring1Opacity),
         stroke: colors.bg,
         'stroke-width': (1.2 * scale).toFixed(3)
       });
@@ -276,15 +285,16 @@
         'font-family': '"Quicksand", "Product Sans", sans-serif'
       });
       text.appendChild(document.createTextNode(segment.node.label));
-      if (segment.node.subtitle) {
+      const subtitleText = stripYearSuffix(segment.node.subtitle);
+      if (subtitleText && !segment.node.series) {
         const subtitle = createSVG('tspan', {
           x: pos.x,
           dy: `${18 * scale}`,
-          'font-size': fontSize(14, 12.5),
-          'font-weight': '600',
-          fill: colors.subtext,
+          'font-size': fontSize(15, 13),
+          'font-weight': '700',
+          fill: colors.text,
           'font-family': '"Quicksand", "Product Sans", sans-serif'
-        }, document.createTextNode(segment.node.subtitle));
+        }, document.createTextNode(subtitleText));
         text.appendChild(subtitle);
       }
       svg.appendChild(text);
@@ -294,7 +304,7 @@
       const parentColor = seriesColor(segment.parent.node.series);
       const path = createSVG('path', {
         d: arcPath(cx, cy, inner2, outer2, segment.a0, segment.a1),
-        fill: hexToRgba(parentColor, 0.78),
+        fill: hexToRgba(parentColor, ring2Opacity),
         stroke: colors.bg,
         'stroke-width': (1.1 * scale).toFixed(3)
       });
@@ -306,27 +316,31 @@
       const label = createSVG('text', {
         x: center.x,
         y: center.y - 2 * scale,
-        fill: colors.text,
+        fill: labelAccent,
         'text-anchor': 'middle',
         'dominant-baseline': 'middle',
-        'font-size': fontSize(20, 14),
-        'font-weight': '700',
+        'font-size': fontSize(22, 15),
+        'font-weight': '800',
         'paint-order': 'stroke',
         stroke: textStroke,
         'stroke-width': Math.max(0.4, 0.6 * scale).toFixed(3),
         'font-family': '"Quicksand", "Product Sans", sans-serif'
       });
       label.appendChild(document.createTextNode(segment.node.abbr || segment.node.label));
-      const stat = segment.node.stat || (segment.node.subtitle ? segment.node.subtitle.replace(/[^0-9.]+/g, '') : '');
+      const statRaw = segment.node.stat || (segment.node.subtitle ? segment.node.subtitle.replace(/[^0-9.]+/g, '') : '');
+      const stat = stripYearSuffix(statRaw);
       if (stat) {
         label.appendChild(createSVG('tspan', {
           x: center.x,
-          dy: `${18 * scale}`,
-          'font-size': fontSize(16, 13.5),
-          'font-weight': '700',
-          fill: colors.subtext,
+          dy: `${26 * scale}`,
+          'font-size': fontSize(20, 16),
+          'font-weight': '800',
+          fill: colors.text,
+          'paint-order': 'stroke',
+          stroke: textStroke,
+          'stroke-width': Math.max(0.42, 0.65 * scale).toFixed(3),
           'font-family': '"Quicksand", "Product Sans", sans-serif'
-        }, document.createTextNode(`${stat} yrs`)));
+        }, document.createTextNode(stat)));
       }
       svg.appendChild(label);
     });
@@ -448,7 +462,7 @@
       const svg = renderGaugeSVG(gauge);
       const label = createEl('div', { class: 'syop-gauge-label' },
         createEl('span', { class: 'gauge-value', style: { color: gauge.color } }, gauge.key),
-        createEl('span', { class: 'gauge-title', style: { color: colors.subtext } }, 'Avg SYOP (yrs)')
+        createEl('span', { class: 'gauge-title', style: { color: colors.subtext } }, 'AVG SYOP (YRS)')
       );
       gaugeWrapper.appendChild(svg);
       gaugeWrapper.appendChild(label);
@@ -534,25 +548,25 @@
 
     const valueText = createSVG('text', {
       x: cx,
-      y: cy - 64,
-      fill: colors.text,
-      'font-size': '48',
+      y: cy - 40,
+      fill: gauge.color,
+      'font-size': '30',
       'font-weight': '800',
       'text-anchor': 'middle',
       'paint-order': 'stroke',
-      stroke: 'rgba(11, 14, 22, 0.65)',
-      'stroke-width': '0.72'
+      stroke: 'rgba(11, 14, 22, 0.72)',
+      'stroke-width': '0.6'
     }, document.createTextNode(gauge.value.toFixed(2)));
     svg.appendChild(valueText);
 
     svg.appendChild(createSVG('text', {
       x: cx,
-      y: cy - 28,
+      y: cy - 16,
       fill: colors.subtext,
-      'font-size': '15',
+      'font-size': '16',
       'font-weight': '700',
       'text-anchor': 'middle'
-    }, document.createTextNode('yrs')));
+    }, document.createTextNode('YRS')));
 
     return svg;
   }
@@ -722,10 +736,12 @@
     const containerWidth = container.clientWidth || 0;
     const fallbackWidth = 360;
     const width = containerWidth > 0 ? containerWidth : fallbackWidth;
-    const height = width < 540 ? 300 : 360;
-    const margin = width < 540
-      ? { top: 52, right: 20, bottom: 48, left: 54 }
-      : { top: 52, right: 28, bottom: 56, left: 68 };
+    const isNarrow = width <= 420;
+    const isCompact = width < 640;
+    const height = width < 600 ? 320 : 380;
+    const margin = width < 560
+      ? { top: 72, right: 30, bottom: 72, left: 62 }
+      : { top: 76, right: 42, bottom: 84, left: 76 };
     const chartWidth = width - margin.left - margin.right;
     const chartHeight = height - margin.top - margin.bottom;
     const svg = createSVG('svg', {
@@ -751,7 +767,7 @@
         stroke: tick === 0 ? 'rgba(255,255,255,0.16)' : colors.grid
       }));
       g.appendChild(createSVG('text', {
-        x: -12,
+        x: -14,
         y: y + 4,
         fill: colors.subtext,
         'font-size': '12',
@@ -763,21 +779,35 @@
       const x = index * stepX;
       g.appendChild(createSVG('text', {
         x,
-        y: chartHeight + 28,
+        y: chartHeight + 30,
         fill: colors.subtext,
         'font-size': '12',
         'text-anchor': 'middle'
       }, document.createTextNode(`RD ${round}`)));
     });
 
-    const dotRadius = width < 560 ? 3.6 : 4.4;
+    const dotRadius = isCompact ? 3.6 : 4.2;
+    const labelEntries = [];
+    const roundLabelGroups = rounds.map(() => []);
 
     DRAFT_SERIES.forEach((series) => {
-      const points = DRAFT_POSITIONAL.map((row, index) => ({
-        x: index * stepX,
-        y: chartHeight - (row[series.key] / 100) * chartHeight,
-        value: row[series.key]
-      }));
+      const points = DRAFT_POSITIONAL.map((row, index) => {
+        const value = row[series.key];
+        const x = index * stepX;
+        const y = chartHeight - (value / 100) * chartHeight;
+        const prev = index > 0 ? DRAFT_POSITIONAL[index - 1][series.key] : null;
+        const next = index < DRAFT_POSITIONAL.length - 1 ? DRAFT_POSITIONAL[index + 1][series.key] : null;
+        let slope = 0;
+        if (prev != null && next != null) {
+          slope = next - prev;
+        } else if (next != null) {
+          slope = next - value;
+        } else if (prev != null) {
+          slope = value - prev;
+        }
+        const isPeak = (prev == null || value >= prev) && (next == null || value >= next);
+        return { x, y, value, roundIndex: index, slope, isPeak };
+      });
 
       const path = createSVG('path', {
         d: catmullRomPath(points),
@@ -797,14 +827,181 @@
           stroke: series.color,
           'stroke-width': '2'
         }));
-        g.appendChild(createSVG('text', {
-          x: point.x,
-          y: point.y - (width < 560 ? 9 : 11),
-          fill: colors.text,
-          'font-size': '10',
-          'text-anchor': 'middle'
-        }, document.createTextNode(`${point.value}%`)));
+
+        const entry = {
+          series,
+          point,
+          value: point.value,
+          roundIndex: point.roundIndex,
+          slope: point.slope,
+          isPeak: point.isPeak,
+          offsetY: 0,
+          offsetX: 0
+        };
+        labelEntries.push(entry);
+        roundLabelGroups[point.roundIndex].push(entry);
       });
+    });
+
+    const topBase = isCompact ? 20 : 22;
+    const bottomBase = isCompact ? 20 : 22;
+    const laneSpacing = isCompact ? 13 : 15;
+    const jitterAmount = isCompact ? 2.4 : 3;
+
+    roundLabelGroups.forEach((entries) => {
+      if (!entries.length) return;
+
+      const ranked = entries.slice().sort((a, b) => {
+        if (b.value === a.value) {
+          return a.series.key.localeCompare(b.series.key);
+        }
+        return b.value - a.value;
+      });
+
+      const topGroup = ranked.slice(0, Math.min(2, ranked.length));
+      const bottomGroup = ranked.slice(topGroup.length);
+
+      topGroup.forEach((entry) => { entry.orientation = 'above'; });
+      bottomGroup.forEach((entry) => { entry.orientation = 'below'; });
+
+      const orientationGroups = {
+        above: topGroup.slice().sort((a, b) => (b.value === a.value ? a.series.key.localeCompare(b.series.key) : b.value - a.value)),
+        below: bottomGroup.slice().sort((a, b) => (a.value === b.value ? a.series.key.localeCompare(b.series.key) : a.value - b.value))
+      };
+
+      Object.entries(orientationGroups).forEach(([side, group]) => {
+        if (!group.length) return;
+        const sign = side === 'above' ? -1 : 1;
+        group.forEach((entry, index) => {
+          entry.laneIndex = index;
+          entry.offsetY = sign * ( (side === 'above' ? topBase : bottomBase) + index * laneSpacing );
+        });
+
+        const duplicates = new Map();
+        group.forEach((entry) => {
+          const key = entry.value;
+          if (!duplicates.has(key)) {
+            duplicates.set(key, []);
+          }
+          duplicates.get(key).push(entry);
+        });
+
+        duplicates.forEach((dupeEntries) => {
+          if (dupeEntries.length <= 1) return;
+          const midpoint = (dupeEntries.length - 1) / 2;
+          dupeEntries
+            .sort((a, b) => a.series.key.localeCompare(b.series.key))
+            .forEach((entry, idx) => {
+              const nudge = (idx - midpoint) * jitterAmount;
+              entry.offsetY += sign * nudge;
+              entry.offsetX = (idx - midpoint) * (isCompact ? 3.2 : 4.8);
+            });
+        });
+
+        const spreadMid = (group.length - 1) / 2;
+        group.forEach((entry) => {
+          entry.offsetX += (entry.laneIndex - spreadMid) * (isCompact ? 3 : 5);
+        });
+      });
+    });
+
+    const leaderLayer = createSVG('g', { class: 'draft-label-leaders' });
+    const labelLayer = createSVG('g', { class: 'draft-label-layer' });
+
+    const labelFontSize = isNarrow ? 10 : isCompact ? 11 : 12;
+    const chipPadX = isNarrow ? 5 : isCompact ? 6 : 8;
+    const chipPadY = isNarrow ? 3 : isCompact ? 3.4 : 4.2;
+
+    labelEntries.forEach((entry) => {
+      const orientation = entry.orientation || 'above';
+      const slope = entry.slope || 0;
+      const preferLeft = slope >= 0;
+      let dx = preferLeft ? -10 : 10;
+      if (orientation === 'below') {
+        dx = preferLeft ? -10 : 10;
+      }
+
+      dx += entry.offsetX || 0;
+
+      const minX = 16;
+      const maxX = chartWidth - 16;
+      const plannedX = entry.point.x + dx;
+      if (plannedX < minX) {
+        dx += minX - plannedX;
+      } else if (plannedX > maxX) {
+        dx -= plannedX - maxX;
+      }
+
+      const labelX = entry.point.x + dx;
+      let labelY = entry.point.y + (entry.offsetY || 0);
+
+      const topBound = -6;
+      const bottomBound = chartHeight + 6;
+      if (labelY < topBound) {
+        labelY = topBound;
+      } else if (labelY > bottomBound) {
+        labelY = bottomBound;
+      }
+
+      const displayValue = isNarrow ? String(entry.value) : `${entry.value}%`;
+      const labelGroup = createSVG('g', {
+        class: `draft-label-chip${entry.isPeak ? ' is-peak' : ''}`,
+        transform: `translate(${labelX},${labelY})`,
+        'data-value': `${entry.value}%`,
+        'aria-hidden': 'true'
+      });
+
+      if (isNarrow) {
+        labelGroup.setAttribute('title', `${entry.value}%`);
+      }
+
+      const text = createSVG('text', {
+        fill: entry.series.color,
+        'font-size': String(labelFontSize),
+        'font-weight': entry.isPeak ? '700' : '600',
+        'text-anchor': 'middle',
+        'dominant-baseline': 'middle'
+      }, document.createTextNode(displayValue));
+
+      labelGroup.appendChild(text);
+      labelLayer.appendChild(labelGroup);
+
+      const bbox = text.getBBox();
+      const padX = chipPadX + (entry.isPeak ? 1.4 : 0);
+      const padY = chipPadY + (entry.isPeak ? 0.9 : 0);
+      const rectWidth = bbox.width + padX * 2;
+      const rectHeight = bbox.height + padY * 2;
+      const rect = createSVG('rect', {
+        x: -(rectWidth / 2),
+        y: -(rectHeight / 2),
+        width: rectWidth,
+        height: rectHeight,
+        rx: 8,
+        ry: 8,
+        fill: 'rgba(13, 17, 30, 0.76)',
+        stroke: entry.isPeak ? hexToRgba(entry.series.color, 0.58) : hexToRgba(entry.series.color, 0.42),
+        'stroke-width': entry.isPeak ? '1.1' : '0.9'
+      });
+      labelGroup.insertBefore(rect, text);
+
+      const chipHalfHeight = rectHeight / 2;
+      const leaderStartY = orientation === 'above' ? entry.point.y - dotRadius + 1 : entry.point.y + dotRadius - 1;
+      const leaderEndY = orientation === 'above' ? labelY + chipHalfHeight : labelY - chipHalfHeight;
+      const leaderLength = Math.abs(leaderEndY - leaderStartY);
+      const leaderThreshold = isCompact ? 14 : 16;
+
+      if (leaderLength > leaderThreshold) {
+        leaderLayer.appendChild(createSVG('line', {
+          x1: entry.point.x,
+          y1: leaderStartY,
+          x2: labelX,
+          y2: orientation === 'above' ? leaderEndY - 2 : leaderEndY + 2,
+          stroke: entry.series.color,
+          'stroke-width': '1',
+          'stroke-linecap': 'round',
+          'stroke-opacity': isCompact ? '0.55' : '0.65'
+        }));
+      }
     });
 
     g.appendChild(createSVG('line', {
@@ -814,6 +1011,9 @@
       y2: chartHeight,
       stroke: 'rgba(255,255,255,0.18)'
     }));
+
+    g.appendChild(leaderLayer);
+    g.appendChild(labelLayer);
 
     container.appendChild(svg);
   }
