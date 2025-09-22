@@ -2578,6 +2578,335 @@ body[data-page="rosters"] #secondary-header-row #analyzeLeagueButton.active {
     color: var(--color-text-primary);
 }
 
+body[data-page="rosters"] .username-area {
+    display: none !important;
+}
+
+body[data-page="rosters"] .roster-search-empty {
+    width: 100%;
+    text-align: center;
+    padding: 1.5rem 0.75rem;
+    color: var(--color-text-secondary);
+    font-style: italic;
+    font-size: 0.85rem;
+}
+
+@media (max-width: 768px) {
+    body[data-page="rosters"] .app-header.liquid-rosters-header {
+        background: transparent;
+        box-shadow: none;
+        padding: 0;
+    }
+
+    body[data-page="rosters"] #rostersLiquidShell {
+        display: grid;
+        gap: 0;
+        border-radius: 24px;
+        background: linear-gradient(145deg, rgba(21,24,41,0.82), rgba(10,12,26,0.76));
+        border: 1px solid rgba(255,255,255,0.1);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.18);
+        backdrop-filter: blur(18px);
+        position: relative;
+        overflow: hidden;
+    }
+
+    body[data-page="rosters"] #rostersLiquidShell::after {
+        content: '';
+        position: absolute;
+        inset: 1px;
+        border-radius: 22px;
+        pointer-events: none;
+        box-shadow: inset 0 0 25px rgba(118,109,255,0.08);
+    }
+
+    body[data-page="rosters"] #rostersLiquidShell > .liquid-row {
+        padding: 0.85rem 1rem;
+        display: grid;
+        gap: 0.75rem;
+    }
+
+    body[data-page="rosters"] #rostersLiquidShell > .liquid-row + .liquid-row {
+        border-top: 1px solid rgba(255,255,255,0.08);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+    }
+
+    body[data-page="rosters"] #primary-header-row {
+        grid-template-columns: 1fr;
+    }
+
+    body[data-page="rosters"] .liquid-nav-grid {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        align-items: center;
+        gap: 0.85rem;
+    }
+
+    body[data-page="rosters"] .liquid-nav-items {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 0.35rem;
+    }
+
+    body[data-page="rosters"] .dh-logo-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2.4rem;
+        height: 2.4rem;
+        border-radius: 999px;
+        border: 1px solid rgba(255,255,255,0.16);
+        background: radial-gradient(circle at 25% 25%, rgba(118,109,255,0.6), rgba(10,12,28,0.7));
+        color: var(--color-text-primary);
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+    }
+
+    body[data-page="rosters"] .dh-logo-button:hover,
+    body[data-page="rosters"] .dh-logo-button:focus-visible {
+        transform: translateY(-1px) scale(1.03);
+        border-color: rgba(118,109,255,0.55);
+        box-shadow: 0 8px 18px rgba(118,109,255,0.3);
+    }
+
+    body[data-page="rosters"] .dh-logo-monogram {
+        font-size: 1.05rem;
+    }
+
+    body[data-page="rosters"] .liquid-nav-item {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.35rem;
+        font-weight: 600;
+        border-radius: 999px;
+        border: 1px solid transparent;
+        background: transparent;
+        color: var(--color-text-secondary);
+        padding: 0.35rem 0.65rem;
+        font-size: 0.68rem;
+        transition: color 0.18s ease, background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    body[data-page="rosters"] .liquid-nav-item i {
+        font-size: 0.95rem;
+        color: inherit;
+    }
+
+    body[data-page="rosters"] .liquid-nav-item.active {
+        background: linear-gradient(135deg, rgba(118,109,255,0.25), rgba(66,194,255,0.25));
+        border-color: rgba(118,109,255,0.55);
+        color: var(--color-accent-primary);
+        box-shadow: 0 4px 12px rgba(118,109,255,0.25);
+    }
+
+    body[data-page="rosters"] .liquid-nav-item:not(.active):hover,
+    body[data-page="rosters"] .liquid-nav-item:not(.active):focus-visible {
+        color: var(--color-text-primary);
+        border-color: rgba(255,255,255,0.18);
+    }
+
+    body[data-page="rosters"] #primary-header-row .primary-switcher,
+    body[data-page="rosters"] #primary-header-row .header-quick-links,
+    body[data-page="rosters"] #dropdown-menu {
+        display: none !important;
+    }
+
+    body[data-page="rosters"] #contextual-controls {
+        display: grid;
+        gap: 0;
+    }
+
+    body[data-page="rosters"] #secondary-header-row {
+        grid-template-columns: auto 1fr;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    body[data-page="rosters"] .league-chip-wrap {
+        border-radius: 999px;
+        background: rgba(18,21,35,0.7);
+        border: 1px solid rgba(255,255,255,0.1);
+        padding: 0.15rem 0.45rem;
+        display: flex;
+        align-items: center;
+        min-height: 2.6rem;
+    }
+
+    body[data-page="rosters"] .league-chip-wrap select {
+        width: 100%;
+        background: transparent;
+        border: none;
+        color: var(--color-text-primary);
+        font-weight: 600;
+        font-size: 0.85rem;
+        padding: 0;
+        appearance: none;
+    }
+
+    body[data-page="rosters"] .liquid-view-toggle {
+        background: rgba(18,21,35,0.65);
+        border-radius: 999px;
+        border: 1px solid rgba(255,255,255,0.12);
+        padding: 0.2rem;
+        gap: 0.3rem;
+    }
+
+    body[data-page="rosters"] .liquid-view-toggle button {
+        display: grid;
+        grid-auto-flow: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.35rem;
+        border-radius: 999px;
+        border: none;
+        padding: 0.35rem 0.75rem;
+        background: transparent;
+        color: var(--color-text-secondary);
+        font-weight: 600;
+        transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    body[data-page="rosters"] .liquid-view-toggle button.active,
+    body[data-page="rosters"] .liquid-view-toggle button.counterpart-active {
+        background: linear-gradient(135deg, rgba(118,109,255,0.38), rgba(66,194,255,0.32));
+        color: var(--color-text-primary);
+        box-shadow: 0 8px 14px rgba(118,109,255,0.22);
+    }
+
+    body[data-page="rosters"] #filters-row {
+        grid-template-columns: auto;
+    }
+
+    body[data-page="rosters"] #filters-row .filters-container {
+        display: grid;
+        grid-template-columns: 1fr auto auto;
+        align-items: center;
+        gap: 0.55rem;
+    }
+
+    body[data-page="rosters"] #positional-filters {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 0.35rem;
+    }
+
+    body[data-page="rosters"] .liquid-search-chip {
+        display: inline-grid;
+        grid-auto-flow: column;
+        align-items: center;
+        gap: 0.4rem;
+        border-radius: 999px;
+        border: 1px solid rgba(255,255,255,0.1);
+        background: rgba(18,21,35,0.65);
+        padding: 0.25rem;
+        position: relative;
+        overflow: hidden;
+        transition: border-color 0.18s ease;
+    }
+
+    body[data-page="rosters"] .liquid-search-chip:hover,
+    body[data-page="rosters"] .liquid-search-chip:focus-within {
+        border-color: rgba(118,109,255,0.45);
+    }
+
+    body[data-page="rosters"] .liquid-search-chip .search-trigger {
+        width: 2.25rem;
+        height: 2.25rem;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: none;
+        background: linear-gradient(135deg, rgba(118,109,255,0.3), rgba(66,194,255,0.3));
+        color: var(--color-text-primary);
+        transition: transform 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    body[data-page="rosters"] .liquid-search-chip .search-trigger:hover,
+    body[data-page="rosters"] .liquid-search-chip .search-trigger:focus-visible {
+        transform: scale(1.05);
+        box-shadow: 0 6px 14px rgba(118,109,255,0.25);
+    }
+
+    body[data-page="rosters"] .liquid-search-chip .search-field {
+        width: 0;
+        opacity: 0;
+        transform: scaleX(0.8);
+        transform-origin: left center;
+        transition: transform 0.2s ease-out, opacity 0.2s ease-out, width 0.2s ease-out;
+    }
+
+    body[data-page="rosters"] .liquid-search-chip .search-field input {
+        width: 100%;
+        border: none;
+        background: transparent;
+        color: var(--color-text-primary);
+        font-size: 0.78rem;
+        padding: 0.25rem 0.35rem 0.25rem 0.1rem;
+        outline: none;
+    }
+
+    body[data-page="rosters"] .liquid-search-chip.is-active .search-field {
+        width: min(200px, 55vw);
+        opacity: 1;
+        transform: scaleX(1);
+    }
+
+    body[data-page="rosters"] .liquid-search-chip.is-active {
+        border-color: rgba(118,109,255,0.55);
+        box-shadow: inset 0 0 0 1px rgba(118,109,255,0.15);
+    }
+
+    body[data-page="rosters"] #positional-filters .filter-btn {
+        border-radius: 999px;
+        border: 1px solid rgba(255,255,255,0.12);
+        background: rgba(18,21,35,0.7);
+        padding: 0.45rem 0.3rem;
+        font-size: 0.78rem;
+        font-weight: 600;
+        transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+    }
+
+    body[data-page="rosters"] #positional-filters .filter-btn.active {
+        background: linear-gradient(135deg, rgba(118,109,255,0.32), rgba(66,194,255,0.28));
+        border-color: rgba(118,109,255,0.45);
+        color: var(--color-text-primary);
+        box-shadow: 0 6px 12px rgba(118,109,255,0.18);
+    }
+
+    body[data-page="rosters"] #clearFiltersButton,
+    body[data-page="rosters"] #clearCompareButton {
+        width: 2.6rem;
+        height: 2.6rem;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid rgba(255,255,255,0.12);
+        background: rgba(18,21,35,0.65);
+        transition: border-color 0.18s ease, transform 0.18s ease;
+    }
+
+    body[data-page="rosters"] #clearFiltersButton:hover,
+    body[data-page="rosters"] #clearFiltersButton:focus-visible,
+    body[data-page="rosters"] #clearCompareButton:hover,
+    body[data-page="rosters"] #clearCompareButton:focus-visible {
+        border-color: rgba(118,109,255,0.45);
+        transform: translateY(-1px);
+    }
+
+    body[data-page="rosters"] .compare-controls {
+        display: none;
+    }
+}
+
+@media (min-width: 769px) {
+    body[data-page="rosters"] .liquid-search-chip {
+        display: none;
+    }
+}
+
 #analyzeLeagueButton.glow-on-select {
     box-shadow: 0 0 8px #7300ff;
     color: #eeeeee;
