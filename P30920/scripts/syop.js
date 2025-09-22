@@ -407,6 +407,11 @@
   }
 
   function renderStackedAreaChart() {
+    if (typeof d3 === 'undefined') {
+      setTimeout(renderStackedAreaChart, 50);
+      return;
+    }
+
     const container = document.getElementById('syop-bar-chart');
     if (!container) return;
     container.innerHTML = '';
@@ -462,26 +467,24 @@
       .attr('d', area)
       .style('fill', d => colors[d.key]);
 
-    // Add X axis
     svg.append('g')
       .attr('transform', `translate(0,${height})`)
       .call(d3.axisBottom(x))
       .selectAll('text')
-      .style('fill', '#A7AFD4')
-      .style('font-size', '12px');
+        .attr('transform', 'rotate(-45)')
+        .style('text-anchor', 'end')
+        .style('fill', '#A7AFD4')
+        .style('font-size', '12px');
 
-    // Add Y axis
     svg.append('g')
       .call(d3.axisLeft(y).ticks(5).tickFormat(d => d + '%'))
       .selectAll('text')
       .style('fill', '#A7AFD4')
       .style('font-size', '12px');
 
-    // Remove axis lines
     svg.selectAll('.domain').remove();
     svg.selectAll('.tick line').remove();
 
-    // Add X axis label
     svg.append('text')
       .attr('text-anchor', 'middle')
       .attr('x', width / 2)
