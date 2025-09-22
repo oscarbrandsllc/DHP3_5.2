@@ -26,7 +26,12 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
         const tradeSimulator = document.getElementById('tradeSimulator');
         const mainContent = document.getElementById('content');
         const pageType = document.body.dataset.page || 'welcome';
-        const researchButton = document.getElementById('syopResearchButton');
+        const researchButton = document.getElementById('researchButton');
+        const headerQuickLinks = document.getElementById('header-quick-links');
+        const analyzerButtonSlot = document.getElementById('analyzer-button-slot');
+        const researchButtonSlot = document.getElementById('research-button-slot');
+        const analyzerButtonContainer = analyzerButtonSlot?.querySelector('.analyzer-button-container') || null;
+        const researchButtonContainer = researchButtonSlot?.querySelector('.research-button-container') || null;
 
         const gameLogsModal = document.getElementById('game-logs-modal');
         const modalCloseBtn = document.querySelector('.modal-close-btn');
@@ -51,18 +56,18 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
         const menuRosters = document.getElementById('menu-rosters');
         const menuOwnership = document.getElementById('menu-ownership');
         const menuAnalyzer = document.getElementById('menu-analyzer');
-        const menuSyop = document.getElementById('menu-syop');
+        const menuResearch = document.getElementById('menu-research');
         const analyzeLeagueButton = document.getElementById('analyzeLeagueButton');
-        const resolveSyopUrl = () => {
+        const resolveResearchUrl = () => {
             const username = usernameInput.value.trim();
             const suffix = username ? `?username=${encodeURIComponent(username)}` : '';
             if (pageType === 'welcome') {
-                return `syop/syop.html${suffix}`;
+                return `research/research.html${suffix}`;
             }
-            if (pageType === 'syop') {
-                return `syop/syop.html${suffix}`;
+            if (pageType === 'research') {
+                return `research/research.html${suffix}`;
             }
-            return `../syop/syop.html${suffix}`;
+            return `../research/research.html${suffix}`;
         };
 
         menuButton?.addEventListener('click', (e) => {
@@ -136,23 +141,52 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
             dropdownMenu.classList.add('hidden');
         });
 
-        menuSyop?.addEventListener('click', () => {
-            if (pageType === 'syop') {
+        menuResearch?.addEventListener('click', () => {
+            if (pageType === 'research') {
                 dropdownMenu.classList.add('hidden');
                 return;
             }
-            const url = resolveSyopUrl();
+            const url = resolveResearchUrl();
             window.location.href = url;
             dropdownMenu.classList.add('hidden');
         });
 
         researchButton?.addEventListener('click', () => {
-            if (pageType === 'syop') {
+            if (pageType === 'research') {
                 return;
             }
-            const url = resolveSyopUrl();
+            const url = resolveResearchUrl();
             window.location.href = url;
         });
+
+        if (headerQuickLinks && analyzerButtonSlot && researchButtonSlot && analyzerButtonContainer && researchButtonContainer) {
+            const quickLinksQuery = window.matchMedia('(min-width: 1024px)');
+            const placeQuickLinks = (isDesktop) => {
+                if (isDesktop) {
+                    if (!headerQuickLinks.contains(analyzerButtonContainer)) {
+                        headerQuickLinks.appendChild(analyzerButtonContainer);
+                    }
+                    if (!headerQuickLinks.contains(researchButtonContainer)) {
+                        headerQuickLinks.appendChild(researchButtonContainer);
+                    }
+                } else {
+                    if (!analyzerButtonSlot.contains(analyzerButtonContainer)) {
+                        analyzerButtonSlot.appendChild(analyzerButtonContainer);
+                    }
+                    if (!researchButtonSlot.contains(researchButtonContainer)) {
+                        researchButtonSlot.appendChild(researchButtonContainer);
+                    }
+                }
+            };
+
+            placeQuickLinks(quickLinksQuery.matches);
+            const quickLinksListener = (event) => placeQuickLinks(event.matches);
+            if (typeof quickLinksQuery.addEventListener === 'function') {
+                quickLinksQuery.addEventListener('change', quickLinksListener);
+            } else if (typeof quickLinksQuery.addListener === 'function') {
+                quickLinksQuery.addListener(quickLinksListener);
+            }
+        }
 
         // --- State ---
         let state = { userId: null, leagues: [], players: {}, oneQbData: {}, sflxData: {}, currentLeagueId: null, isSuperflex: false, cache: {}, teamsToCompare: new Set(), isCompareMode: false, currentRosterView: 'positional', activePositions: new Set(), tradeBlock: {}, isTradeCollapsed: false, weeklyStats: {}, playerSeasonStats: {}, playerSeasonRanks: {}, playerWeeklyStats: {}, statsSheetsLoaded: false, seasonRankCache: null, isGameLogModalOpenFromComparison: false };
@@ -192,7 +226,7 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
                 if (!username) return;
                 window.location.href = `ownership/ownership.html?username=${encodeURIComponent(username)}`;
             });
-        } else if (pageType === 'syop') {
+        } else if (pageType === 'research') {
             fetchRostersButton?.addEventListener('click', () => {
                 const username = usernameInput.value.trim();
                 if (!username) return;
@@ -281,7 +315,7 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
         // --- Initialization ---
         document.addEventListener('DOMContentLoaded', async () => {
             if (pageType === 'analyzer') return;
-            if (pageType === 'syop') {
+            if (pageType === 'research') {
                 const params = new URLSearchParams(window.location.search);
                 const uname = params.get('username');
                 if (uname) {
