@@ -58,6 +58,39 @@
     { SYOP: '12+', 'QB %': 20.0, 'RB %': 0.4, 'WR %': 2.2, 'TE %': 3.85 }
   ];
 
+  const POSITION_CONFIG = [
+    { key: 'QB', percentKey: 'QB %', label: 'Quarterbacks', color: colors.qb },
+    { key: 'RB', percentKey: 'RB %', label: 'Running Backs', color: colors.rb },
+    { key: 'WR', percentKey: 'WR %', label: 'Wide Receivers', color: colors.wr },
+    { key: 'TE', percentKey: 'TE %', label: 'Tight Ends', color: colors.te }
+  ];
+
+  const POSITION_TOTALS = {
+    QB: 52,
+    RB: 96,
+    WR: 107,
+    TE: 42
+  };
+
+  const NAME_BANK = {
+    QB: {
+      first: ['Aaron', 'Ben', 'Cam', 'Dak', 'Eli', 'Josh', 'Matt', 'Philip', 'Russell', 'Tom', 'Drew', 'Tony', 'Kirk', 'Nick', 'Patrick', 'Matthew', 'Andrew', 'Lamar', 'Alex', 'Deshaun'],
+      last: ['Rodgers', 'Roethlisberger', 'Newton', 'Prescott', 'Manning', 'Allen', 'Ryan', 'Rivers', 'Wilson', 'Brady', 'Brees', 'Romo', 'Cousins', 'Foles', 'Mahomes', 'Stafford', 'Luck', 'Jackson', 'Smith', 'Watson', 'Goff', 'Carr']
+    },
+    RB: {
+      first: ['Adrian', 'Alvin', 'Arian', 'Christian', 'Derrick', 'Ezekiel', 'Jamaal', 'Javonte', 'Joe', 'Jonathan', 'Josh', 'Kareem', "Le\'Veon", 'Leonard', 'Marshawn', 'Melvin', 'Nick', 'Saquon', 'Todd', 'Tony'],
+      last: ['Peterson', 'Kamara', 'Foster', 'McCaffrey', 'Henry', 'Elliott', 'Charles', 'Williams', 'Mixon', 'Taylor', 'Jacobs', 'Hunt', 'Bell', 'Fournette', 'Lynch', 'Gordon', 'Chubb', 'Barkley', 'Gurley', 'Pollard', 'Cook', 'Johnson']
+    },
+    WR: {
+      first: ['Adam', 'A.J.', 'Amari', 'Antonio', 'Brandon', 'Calvin', 'DeAndre', 'Deebo', 'Dez', 'DK', 'Julio', 'Keenan', 'Larry', 'Michael', 'Mike', 'Stefon', 'Terry', 'Tyreek', 'Vincent', 'Wes'],
+      last: ['Thielen', 'Green', 'Cooper', 'Brown', 'Marshall', 'Johnson', 'Hopkins', 'Samuel', 'Bryant', 'Metcalf', 'Jones', 'Allen', 'Fitzgerald', 'Thomas', 'Evans', 'Diggs', 'McLaurin', 'Hill', 'Jackson', 'Welker', 'Smith', 'Moore']
+    },
+    TE: {
+      first: ['Antonio', 'Darren', 'George', 'Greg', 'Jimmy', 'Jordan', 'Mark', 'Rob', 'Travis', 'Vernon', 'Zach', 'Dallas', 'Dalton', 'Hunter', 'Kyle', 'Martellus'],
+      last: ['Gates', 'Waller', 'Kittle', 'Olsen', 'Graham', 'Reed', 'Andrews', 'Gronkowski', 'Kelce', 'Davis', 'Ertz', 'Goedert', 'Schultz', 'Henry', 'Rudolph', 'Bennett', 'Cook', 'Pitts']
+    }
+  };
+
   const GAUGES = [
     { key: 'QB', value: 7.22, color: colors.qb },
     { key: 'RB', value: 3.39, color: colors.wr },
@@ -106,7 +139,206 @@
     { key: 'TE %', label: 'TE %', color: colors.te }
   ];
 
+  const syopChartState = {
+    activePosition: POSITION_CONFIG[0]?.key || null,
+    showTable: false
+  };
+
+  const { playersByPosition: SYOP_PLAYERS_BY_POSITION, summaryByPosition: SYOP_POSITION_SUMMARY } = buildSyopPlayers();
+
   let resizeTimer = null;
+
+  function buildSyopPlayers() {
+    const playersByPosition = {};
+    const summaryByPosition = {};
+
+    POSITION_CONFIG.forEach((config) => {
+      const totalPlayers = POSITION_TOTALS[config.key] || 0;
+      const allocation = allocateBucketCounts(config.percentKey, totalPlayers);
+      let index = 0;
+      const players = [];
+
+      allocation.forEach(({ bucket, count }) => {
+        for (let i = 0; i < count; i += 1) {
+          const name = generatePlayerName(config.key, index);
+          const numericValue = bucketToNumeric(bucket);
+          const player = {
+            id: `${config.key}-${index + 1}`,
+            name,
+            position: config.key,
+            seasons: bucket,
+            numericValue,
+            displayLabel: bucket.includes('+') ? `${bucket} years` : `${bucket} year${bucket === '1' ? '' : 's'}`
+          };
+          players.push(player);
+          index += 1;
+        }
+      });
+
+      const values = players.map((player) => player.numericValue).sort((a, b) => a - b);
+      const { median, q1, q3 } = computeQuantiles(values);
+      const iqr = q3 - q1;
+      const lowerFence = q1 - 1.5 * iqr;
+      const upperFence = q3 + 1.5 * iqr;
+      const shareTwoPlus = players.filter((player) => player.numericValue >= 2).length / (players.length || 1);
+      const shareThreePlus = players.filter((player) => player.numericValue >= 3).length / (players.length || 1);
+
+      const outliers = [];
+      players.forEach((player) => {
+        const isOutlier = player.numericValue < lowerFence || player.numericValue > upperFence;
+        player.isOutlier = isOutlier;
+        if (isOutlier) {
+          outliers.push(player);
+        }
+      });
+
+      summaryByPosition[config.key] = {
+        total: players.length,
+        median,
+        q1,
+        q3,
+        iqr,
+        shareTwoPlus,
+        shareThreePlus,
+        min: values[0] || 0,
+        max: values[values.length - 1] || 0,
+        outliers
+      };
+
+      playersByPosition[config.key] = players;
+    });
+
+    return { playersByPosition, summaryByPosition };
+  }
+
+  function allocateBucketCounts(percentKey, totalPlayers) {
+    const rows = SYOP_DATA.map((row) => ({
+      bucket: row.SYOP,
+      raw: (row[percentKey] || 0) * totalPlayers / 100
+    }));
+
+    const rounded = rows.map((entry) => Math.round(entry.raw));
+    let diff = totalPlayers - rounded.reduce((sum, value) => sum + value, 0);
+
+    if (diff !== 0) {
+      const adjustments = rows
+        .map((entry, index) => ({ index, fraction: entry.raw - Math.round(entry.raw) }))
+        .sort((a, b) => (diff > 0 ? b.fraction - a.fraction : a.fraction - b.fraction));
+
+      for (let i = 0; i < Math.abs(diff); i += 1) {
+        const target = adjustments[i % adjustments.length]?.index ?? 0;
+        rounded[target] += diff > 0 ? 1 : -1;
+      }
+    }
+
+    return rows.map((row, index) => ({
+      bucket: row.bucket,
+      count: Math.max(0, rounded[index])
+    }));
+  }
+
+  function generatePlayerName(position, index) {
+    const bank = NAME_BANK[position];
+    if (!bank) {
+      return `${position} Player ${index + 1}`;
+    }
+    const firstNames = bank.first;
+    const lastNames = bank.last;
+    const first = firstNames[index % firstNames.length];
+    const last = lastNames[Math.floor(index / firstNames.length) % lastNames.length];
+    return `${first} ${last}`;
+  }
+
+  function bucketToNumeric(bucket) {
+    if (typeof bucket !== 'string') return Number(bucket) || 0;
+    if (bucket.includes('+')) {
+      const base = parseFloat(bucket.replace('+', ''));
+      return Number.isNaN(base) ? 0 : base + 0.5;
+    }
+    const value = parseFloat(bucket);
+    return Number.isNaN(value) ? 0 : value;
+  }
+
+  function formatSyopValue(value) {
+    if (value == null || Number.isNaN(value)) return '—';
+    if (value >= 12.25) return '12+';
+    const rounded = Math.round(value * 10) / 10;
+    if (Math.abs(rounded - Math.round(rounded)) < 1e-6) {
+      return String(Math.round(rounded));
+    }
+    return rounded.toFixed(1);
+  }
+
+  function computeQuantiles(values) {
+    if (!values.length) {
+      return { median: 0, q1: 0, q3: 0 };
+    }
+    const sorted = values.slice().sort((a, b) => a - b);
+    const median = quantile(sorted, 0.5);
+    const q1 = quantile(sorted, 0.25);
+    const q3 = quantile(sorted, 0.75);
+    return { median, q1, q3 };
+  }
+
+  function quantile(values, p) {
+    if (values.length === 0) return 0;
+    const pos = (values.length - 1) * p;
+    const lower = Math.floor(pos);
+    const upper = Math.ceil(pos);
+    if (lower === upper) {
+      return values[lower];
+    }
+    const weight = pos - lower;
+    return values[lower] * (1 - weight) + values[upper] * weight;
+  }
+
+  function computeKernelDensity(values, min, max, steps, bandwidth) {
+    if (!values.length) return [];
+    const domainMin = Math.min(min, Math.min(...values));
+    const domainMax = Math.max(max, Math.max(...values));
+    const kernelBandwidth = bandwidth || ((domainMax - domainMin) / 10 || 1);
+    const points = [];
+    const stepSize = (domainMax - domainMin) / Math.max(steps, 10);
+
+    for (let i = 0; i <= steps; i += 1) {
+      const x = domainMin + stepSize * i;
+      let density = 0;
+      values.forEach((value) => {
+        const u = (x - value) / kernelBandwidth;
+        density += Math.exp(-0.5 * u * u);
+      });
+      density /= values.length * kernelBandwidth * Math.sqrt(2 * Math.PI);
+      points.push({ x, y: density });
+    }
+
+    return points;
+  }
+
+  function createBeeswarmNodes(values, minY, maxY) {
+    const nodes = [];
+    const bins = new Map();
+    const step = 0.2;
+
+    values.forEach((value, index) => {
+      const key = Math.round(value / step) * step;
+      const bin = bins.get(key) || [];
+      const level = Math.floor((bin.length + 2) / 2);
+      const direction = bin.length % 2 === 0 ? 1 : -1;
+      const offsetLevel = level * direction;
+      bin.push(offsetLevel);
+      bins.set(key, bin);
+      nodes.push({ value, index, offsetLevel });
+    });
+
+    const maxLevel = nodes.reduce((acc, node) => Math.max(acc, Math.abs(node.offsetLevel)), 0) || 1;
+    const scale = (maxY - minY) / (2 * maxLevel || 1);
+
+    return nodes.map((node) => ({
+      value: node.value,
+      index: node.index,
+      offset: node.offsetLevel * scale
+    }));
+  }
 
   function createEl(tag, attrs, ...children) {
     const el = document.createElement(tag);
@@ -411,52 +643,333 @@
     if (!container) return;
     container.innerHTML = '';
 
-    const scroll = createEl('div', { class: 'syop-heatmap-scroll' });
-    const grid = createEl('div', { class: 'syop-heatmap' });
+    if (!syopChartState.activePosition && POSITION_CONFIG.length) {
+      syopChartState.activePosition = POSITION_CONFIG[0].key;
+    }
 
-    const headerRow = createEl('div', { class: 'syop-heatmap-row syop-heatmap-header' },
-      createEl('div', { class: 'syop-heatmap-cell bucket-cell' }, 'SYOP')
-    );
-    SERIES_CONFIG.forEach((series) => {
-      headerRow.appendChild(createEl('div', {
-        class: 'syop-heatmap-cell position-header',
-        style: { '--header-accent': series.color }
-      }, series.label.replace('%', '').trim()));
-    });
-    grid.appendChild(headerRow);
+    const controls = createEl('div', { class: 'syop-bar-controls' });
+    controls.appendChild(createEl('span', { class: 'syop-filter-label' }, 'Positions'));
 
-    const maxValue = Math.max(...SYOP_DATA.flatMap((row) => SERIES_CONFIG.map((series) => row[series.key] || 0)));
+    const legend = createEl('div', { class: 'syop-position-legend', role: 'group', 'aria-label': 'SYOP position filter' });
+    POSITION_CONFIG.forEach((config) => {
+      const isActive = syopChartState.activePosition === config.key;
+      const chip = createEl('button', {
+        type: 'button',
+        class: `syop-legend-chip${isActive ? ' active' : ''}`,
+        style: { '--chip-accent': config.color },
+        'aria-pressed': String(isActive)
+      },
+      createEl('span', { class: 'chip-label' }, config.key));
 
-    SYOP_DATA.forEach((row) => {
-      const rowEl = createEl('div', { class: 'syop-heatmap-row' });
-      rowEl.appendChild(createEl('div', { class: 'syop-heatmap-cell bucket-cell' }, row.SYOP));
-
-      SERIES_CONFIG.forEach((series) => {
-        const value = row[series.key] || 0;
-        const intensity = maxValue > 0 ? value / maxValue : 0;
-        const width = Math.max(12, Math.min(100, intensity * 100));
-        const fill = hexToRgba(series.color, 0.35 + 0.55 * intensity);
-        const bar = createEl('span', {
-          class: 'syop-heatmap-bar',
-          style: {
-            width: `${width}%`,
-            background: fill
-          }
-        });
-        const cell = createEl('div', {
-          class: 'syop-heatmap-cell value-cell',
-          style: { '--accent-color': series.color }
-        },
-        bar,
-        createEl('span', { class: 'syop-heatmap-value' }, `${value.toFixed(1)}%`));
-        rowEl.appendChild(cell);
+      chip.addEventListener('click', () => {
+        if (syopChartState.activePosition === config.key) {
+          return;
+        }
+        syopChartState.activePosition = config.key;
+        renderBarChart();
       });
+      legend.appendChild(chip);
+    });
+    controls.appendChild(legend);
 
-      grid.appendChild(rowEl);
+    const viewToggle = createEl('button', {
+      type: 'button',
+      class: 'syop-view-toggle',
+      'aria-pressed': String(syopChartState.showTable),
+      'aria-controls': 'syop-distribution-view'
+    }, syopChartState.showTable ? 'View chart' : 'View as table');
+    viewToggle.addEventListener('click', () => {
+      syopChartState.showTable = !syopChartState.showTable;
+      renderBarChart();
+    });
+    controls.appendChild(viewToggle);
+
+    container.appendChild(controls);
+
+    const viewWrapper = createEl('div', { class: 'syop-violin-wrapper', id: 'syop-distribution-view' });
+    container.appendChild(viewWrapper);
+
+    const tooltip = createEl('div', { class: 'syop-violin-tooltip', role: 'tooltip', id: 'syop-violin-tooltip' });
+    container.appendChild(tooltip);
+
+    if (syopChartState.showTable) {
+      renderSyopTable(viewWrapper);
+      tooltip.classList.add('hidden');
+      return;
+    }
+
+    tooltip.classList.remove('hidden');
+    const selectedConfig = POSITION_CONFIG.find((config) => config.key === syopChartState.activePosition) || POSITION_CONFIG[0];
+
+    if (!selectedConfig) {
+      viewWrapper.appendChild(createEl('p', { class: 'syop-violin-empty' }, 'No positions are available to display.'));
+      return;
+    }
+
+    const grid = createEl('div', { class: 'syop-violin-grid' });
+    viewWrapper.appendChild(grid);
+
+    const metrics = SYOP_POSITION_SUMMARY[selectedConfig.key];
+    const players = SYOP_PLAYERS_BY_POSITION[selectedConfig.key] || [];
+    const panel = createEl('section', { class: 'syop-violin-panel' });
+
+    const header = createEl('header', { class: 'syop-violin-header' },
+      createEl('div', { class: 'syop-violin-title-block' },
+        createEl('h4', { class: 'syop-violin-title' }, selectedConfig.label),
+        createEl('div', { class: 'syop-violin-meta' },
+          createEl('span', null, `${players.length} players`),
+          createEl('span', null, `Median ${formatSyopValue(metrics?.median)} yrs`)
+        )
+      )
+    );
+
+    panel.appendChild(header);
+
+    const plot = createEl('div', { class: 'syop-violin-plot' });
+    panel.appendChild(plot);
+    grid.appendChild(panel);
+
+    drawViolinPlot(plot, selectedConfig, tooltip, container);
+  }
+
+  function drawViolinPlot(plotContainer, config, tooltip, rootContainer) {
+    const players = (SYOP_PLAYERS_BY_POSITION[config.key] || []).slice();
+    const metrics = SYOP_POSITION_SUMMARY[config.key];
+    const sortedPlayers = players.sort((a, b) => a.numericValue - b.numericValue || a.name.localeCompare(b.name));
+    const values = sortedPlayers.map((player) => player.numericValue);
+
+    const containerWidth = plotContainer.clientWidth || plotContainer.parentElement?.clientWidth || 320;
+    const isCompact = window.innerWidth < 720 || containerWidth < 320;
+    const width = Math.max(260, containerWidth);
+    const height = isCompact ? 208 : 244;
+    const margin = isCompact
+      ? { top: 16, right: 12, bottom: 52, left: 26 }
+      : { top: 18, right: 16, bottom: 58, left: 30 };
+
+    const chartWidth = width - margin.left - margin.right;
+    const chartHeight = height - margin.top - margin.bottom;
+    const baseLine = chartHeight - 4;
+    const swarmHeight = isCompact ? 52 : 68;
+    const areaHeight = Math.max(swarmHeight + 28, chartHeight - 72);
+    const areaTop = Math.max(0, baseLine - areaHeight);
+
+    const minX = 0;
+    const maxX = 12.5;
+    const scaleX = (value) => {
+      if (maxX === minX) return 0;
+      const clamped = Math.min(maxX, Math.max(minX, value));
+      return ((clamped - minX) / (maxX - minX)) * chartWidth;
+    };
+
+    const density = computeKernelDensity(values, minX, maxX, 80, 0.7);
+    const maxDensity = Math.max(...density.map((point) => point.y)) || 1;
+    const densityScale = (value) => (value / maxDensity) * areaHeight;
+
+    plotContainer.innerHTML = '';
+    const svg = createSVG('svg', {
+      viewBox: `0 0 ${width} ${height}`,
+      class: 'syop-violin-svg'
+    });
+    const g = createSVG('g', { transform: `translate(${margin.left},${margin.top})` });
+    svg.appendChild(g);
+
+    const background = createSVG('rect', {
+      x: 0,
+      y: 0,
+      width: chartWidth,
+      height: chartHeight,
+      class: 'syop-violin-background'
+    });
+    g.appendChild(background);
+
+    if (metrics) {
+      const bandStart = scaleX(metrics.q1);
+      const bandWidth = Math.max(2, scaleX(metrics.q3) - bandStart);
+      const iqrRect = createSVG('rect', {
+        x: bandStart,
+        y: areaTop,
+        width: bandWidth,
+        height: areaHeight,
+        class: 'syop-violin-iqr',
+        style: { fill: hexToRgba(config.color, 0.16) }
+      });
+      g.appendChild(iqrRect);
+
+      const medianX = scaleX(metrics.median);
+      g.appendChild(createSVG('line', {
+        x1: medianX,
+        x2: medianX,
+        y1: areaTop,
+        y2: baseLine,
+        class: 'syop-violin-median',
+        style: { stroke: hexToRgba(config.color, 0.9) }
+      }));
+    }
+
+    if (density.length > 1) {
+      const areaPoints = density.map((point) => ({
+        x: scaleX(point.x),
+        y: baseLine - densityScale(point.y)
+      }));
+      const pathCommands = [];
+      pathCommands.push(`M ${areaPoints[0].x} ${baseLine}`);
+      areaPoints.forEach((point) => {
+        pathCommands.push(`L ${point.x} ${point.y}`);
+      });
+      pathCommands.push(`L ${areaPoints[areaPoints.length - 1].x} ${baseLine}`);
+      pathCommands.push('Z');
+
+      g.appendChild(createSVG('path', {
+        d: pathCommands.join(' '),
+        class: 'syop-violin-shape',
+        style: {
+          fill: hexToRgba(config.color, 0.24),
+          stroke: hexToRgba(config.color, 0.6)
+        }
+      }));
+    }
+
+    const railValues = [];
+    for (let year = 0; year <= 12; year += 1) {
+      railValues.push(year);
+    }
+
+    railValues.forEach((value) => {
+      const x = scaleX(value);
+      g.appendChild(createSVG('line', {
+        x1: x,
+        x2: x,
+        y1: areaTop,
+        y2: baseLine,
+        class: 'syop-violin-rail'
+      }));
+      g.appendChild(createSVG('line', {
+        x1: x,
+        x2: x,
+        y1: baseLine,
+        y2: baseLine + 6,
+        class: 'syop-violin-tick'
+      }));
+      const label = value === 12 ? '12+' : String(value);
+      g.appendChild(createSVG('text', {
+        x,
+        y: baseLine + 20,
+        class: 'syop-violin-tick-label'
+      }, document.createTextNode(label)));
     });
 
-    scroll.appendChild(grid);
-    container.appendChild(scroll);
+    g.appendChild(createSVG('line', {
+      x1: 0,
+      x2: chartWidth,
+      y1: baseLine,
+      y2: baseLine,
+      class: 'syop-violin-axis'
+    }));
+
+    const nodes = createBeeswarmNodes(values, 0, swarmHeight);
+    const dotRadius = isCompact ? 4 : 5;
+    const swarmCenter = baseLine - swarmHeight / 2;
+
+    nodes.forEach((node) => {
+      const player = sortedPlayers[node.index];
+      const cx = scaleX(node.value);
+      const cy = Math.max(areaTop + dotRadius, Math.min(baseLine - dotRadius, swarmCenter + node.offset));
+      const dot = createSVG('circle', {
+        cx,
+        cy,
+        r: dotRadius,
+        class: `syop-violin-dot${player.isOutlier ? ' outlier' : ''}`,
+        style: {
+          '--dot-accent': config.color
+        },
+        tabindex: '0',
+        role: 'button',
+        'aria-label': `${player.name}: ${player.displayLabel}`
+      });
+      attachDotInteractions(dot, player, config.color, tooltip, rootContainer);
+      g.appendChild(dot);
+    });
+
+    plotContainer.appendChild(svg);
+  }
+
+  function attachDotInteractions(element, player, color, tooltip, rootContainer) {
+    if (!tooltip) return;
+    const hideTooltip = () => {
+      element.classList.remove('active');
+      tooltip.classList.remove('visible');
+    };
+
+    const showTooltip = (event) => {
+      element.classList.add('active');
+      tooltip.innerHTML = '';
+      tooltip.style.setProperty('--tooltip-accent', color);
+      tooltip.appendChild(createEl('div', { class: 'tooltip-name' }, player.name));
+      tooltip.appendChild(createEl('div', { class: 'tooltip-meta' }, `${player.position} • ${player.displayLabel}`));
+      if (player.isOutlier) {
+        tooltip.appendChild(createEl('div', { class: 'tooltip-flag' }, 'Outlier'));
+      }
+
+      const rootRect = rootContainer.getBoundingClientRect();
+      const dotRect = element.getBoundingClientRect();
+      const containerWidth = rootRect.width;
+      let left = dotRect.left - rootRect.left + dotRect.width / 2;
+      left = Math.max(16, Math.min(containerWidth - 16, left));
+      const top = dotRect.top - rootRect.top;
+      tooltip.style.left = `${left}px`;
+      tooltip.style.top = `${top}px`;
+      tooltip.classList.add('visible');
+    };
+
+    element.addEventListener('mouseenter', showTooltip);
+    element.addEventListener('focus', showTooltip);
+    element.addEventListener('mouseleave', hideTooltip);
+    element.addEventListener('blur', hideTooltip);
+    element.addEventListener('click', (event) => {
+      event.preventDefault();
+      showTooltip(event);
+    });
+  }
+
+  function renderSyopTable(wrapper) {
+    wrapper.innerHTML = '';
+    const tableWrapper = createEl('div', { class: 'syop-table-wrapper' });
+    const table = createEl('table', { class: 'syop-table' });
+    table.appendChild(createEl('caption', null, 'SYOP distribution summary by position'));
+
+    const thead = createEl('thead', null,
+      createEl('tr', null,
+        createEl('th', null, 'Position'),
+        createEl('th', null, 'Players'),
+        createEl('th', null, 'Median SYOP'),
+        createEl('th', null, 'IQR (25%–75%)'),
+        createEl('th', null, '≥2 SYOP'),
+        createEl('th', null, '≥3 SYOP'),
+        createEl('th', null, 'Max'),
+        createEl('th', null, 'Outliers')
+      )
+    );
+    table.appendChild(thead);
+
+    const tbody = createEl('tbody');
+    POSITION_CONFIG.forEach((config) => {
+      const metrics = SYOP_POSITION_SUMMARY[config.key];
+      const players = SYOP_PLAYERS_BY_POSITION[config.key] || [];
+      tbody.appendChild(createEl('tr', null,
+        createEl('th', { scope: 'row' }, `${config.key} · ${config.label}`),
+        createEl('td', null, String(players.length)),
+        createEl('td', null, metrics ? formatSyopValue(metrics.median) : '—'),
+        createEl('td', null, metrics ? `${formatSyopValue(metrics.q1)} – ${formatSyopValue(metrics.q3)}` : '—'),
+        createEl('td', null, metrics ? `${Math.round(metrics.shareTwoPlus * 100)}%` : '—'),
+        createEl('td', null, metrics ? `${Math.round(metrics.shareThreePlus * 100)}%` : '—'),
+        createEl('td', null, metrics ? formatSyopValue(metrics.max) : '—'),
+        createEl('td', null, metrics ? `${metrics.outliers.length}` : '0')
+      ));
+    });
+
+    table.appendChild(tbody);
+    tableWrapper.appendChild(table);
+    wrapper.appendChild(tableWrapper);
   }
 
   function renderGauges() {
