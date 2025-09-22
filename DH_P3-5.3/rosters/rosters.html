@@ -28,106 +28,124 @@
 <div class="relative z-10 content-wrapper">
 <div id="header-container">
 <header class="app-header glass-panel">
-<div class="header-row" id="primary-header-row">
-<div class="menu-container">
-    <button id="menu-button" class="menu-button">
-        <svg viewBox="0 0 100 80" width="20" height="20">
-            <rect width="100" height="15"></rect>
-            <rect y="30" width="100" height="15"></rect>
-            <rect y="60" width="100" height="15"></rect>
-        </svg>
-    </button>
-    <div id="dropdown-menu" class="dropdown-menu hidden">
-        <a href="../">
-            <i class="fa-solid fa-house-user" aria-hidden="true"></i>
-            <span>Home</span>
-        </a>
-        <a href="#" id="menu-rosters">
-            <i class="fa-solid fa-clipboard-list" aria-hidden="true"></i>
-            <span>Rosters</span>
-        </a>
-        <a href="#" id="menu-ownership">
-            <i class="fa-solid fa-percent" aria-hidden="true"></i>
-            <span>Ownership</span>
-        </a>
-        <a href="#" id="menu-research">
-            <i class="fa-solid fa-flask" aria-hidden="true"></i>
-            <span>Research</span>
-        </a>
-        <a href="#" id="menu-analyzer">
-            <i class="fa-solid fa-square-poll-vertical" aria-hidden="true"></i>
-            <span>League Analyzer</span>
-        </a>
-    </div>
-</div>
-<div class="header-quick-links" id="header-quick-links" aria-label="Research shortcuts"></div>
-<div class="username-area">
-<input autocapitalize="none" autocomplete="username" autocorrect="off" id="usernameInput" inputmode="text" name="username" placeholder="SLPR Username..." type="text" value="The_Oracle"/>
-</div>
-<div class="app-view-switcher primary-switcher">
-<button id="fetchRostersButton">Rosters</button>
-<button id="fetchOwnershipButton">Ownership%</button>
-</div>
-</div>
-<div class="hidden" id="contextual-controls">
-<div class="header-row" id="secondary-header-row">
-<div class="analyzer-button-slot" id="analyzer-button-slot">
-<div class="analyzer-button-container">
-    <button aria-label="Open League Analyzer" class="menu-button analyzer-button" id="analyzeLeagueButton" type="button">
-        <i class="fa-solid fa-square-poll-vertical analyzer-icon" aria-hidden="true"></i>
-        <span class="analyzer-label">Analyzer</span>
-    </button>
-</div>
-</div>
-<div class="custom-select-wrapper">
-<select disabled="" id="leagueSelect">
-<option>Select a league...</option>
-</select>
-</div>
-<div class="view-switcher secondary-switcher">
-<button id="positionalViewBtn">Positional </button>
-<button id="depthChartViewBtn">Lineup</button>
-</div>
-</div>
-<div class="header-row" id="filters-row">
-    <div class="research-button-slot" id="research-button-slot">
-    <div class="research-button-container">
-        <button class="menu-button analyzer-button research-button" id="researchButton" type="button" aria-label="Open Research insights">
-            <i class="fa-solid fa-flask-vial analyzer-icon" aria-hidden="true"></i>
-            <span class="analyzer-label">Research</span>
-        </button>
-    </div>
-    </div>
-    <div class="filters-container">
-        <div id="positional-filters">
-            <button class="filter-btn" data-position="QB">QB</button>
-            <button class="filter-btn" data-position="RB">RB</button>
-            <button class="filter-btn" data-position="WR">WR</button>
-            <button class="filter-btn" data-position="TE">TE</button>
-            <button class="filter-btn" data-position="FLX">FLX</button>
-        </div>
-        <button class="control-button-subtle" id="clearFiltersButton">
-            <span class="clear-filters-stack">
-                <i class="fa-solid fa-filter-circle-xmark" aria-hidden="true"></i>
-                <span class="sr-only">Clear filters</span>
-            </span>
-        </button>
-
-        <div class="compare-controls">
-            <!-- Hidden compare button kept only to satisfy JS state machine (do not show) -->
-            <button class="control-button hidden" id="compareButton" aria-hidden="true" tabindex="-1" style="display:none;"></button>
-            <!-- Clear selections button -->
-            <button class="control-button-subtle hidden" id="clearCompareButton" aria-label="Clear selections">
-                <span class="clear-filters-stack">
-                    <i class="fa-regular fa-rectangle-xmark" aria-hidden="true"></i>
-                    <span class="sr-only">Clear compare selections</span>
-                </span>
+    <div class="liquid-header-shell" data-variant="liquid-a">
+        <div class="liquid-row liquid-nav-row" role="navigation" aria-label="Primary navigation">
+            <button id="menu-button" class="dh-home-button" type="button" aria-label="Dynasty Hub Home">
+                <span class="dh-home-logo">DH</span>
             </button>
+            <nav class="liquid-nav-menu">
+                <button class="liquid-nav-item" data-nav-target="home" type="button">
+                    <i class="fa-solid fa-house-user" aria-hidden="true"></i>
+                    <span>Home</span>
+                </button>
+                <button class="liquid-nav-item active" data-nav-target="rosters" type="button">
+                    <i class="fa-solid fa-clipboard-list" aria-hidden="true"></i>
+                    <span>Rosters</span>
+                </button>
+                <button class="liquid-nav-item" data-nav-target="ownership" type="button">
+                    <i class="fa-solid fa-percent" aria-hidden="true"></i>
+                    <span>Ownership</span>
+                </button>
+                <button class="liquid-nav-item" data-nav-target="research" type="button">
+                    <i class="fa-solid fa-flask" aria-hidden="true"></i>
+                    <span>Research</span>
+                </button>
+                <button class="liquid-nav-item" data-nav-target="analyzer" type="button">
+                    <i class="fa-solid fa-square-poll-vertical" aria-hidden="true"></i>
+                    <span>Lg.Analyze</span>
+                </button>
+            </nav>
         </div>
+        <div class="liquid-context hidden" id="contextual-controls">
+            <div class="liquid-row liquid-controls-row" id="secondary-header-row">
+                <div class="league-chip">
+                    <label class="sr-only" for="leagueSelect">Select league</label>
+                    <div class="custom-select-wrapper">
+                        <select disabled="" id="leagueSelect">
+                            <option>Select a league...</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="view-switcher secondary-switcher" role="group" aria-label="Roster view">
+                    <button id="positionalViewBtn" type="button">
+                        <i class="fa-solid fa-id-card" aria-hidden="true"></i>
+                        <span>Positional</span>
+                    </button>
+                    <button id="depthChartViewBtn" type="button">
+                        <i class="fa-solid fa-elevator" aria-hidden="true"></i>
+                        <span>Lineup</span>
+                    </button>
+                </div>
+            </div>
+            <div class="liquid-row liquid-filters-row" id="filters-row">
+                <div class="filters-container">
+                    <div id="positional-filters">
+                        <button class="filter-btn" data-position="QB">QB</button>
+                        <button class="filter-btn" data-position="RB">RB</button>
+                        <button class="filter-btn" data-position="WR">WR</button>
+                        <button class="filter-btn" data-position="TE">TE</button>
+                        <button class="filter-btn" data-position="FLX">FLX</button>
+                    </div>
+                    <button class="control-button-subtle" id="clearFiltersButton" type="button">
+                        <span class="clear-filters-stack">
+                            <i class="fa-solid fa-filter-circle-xmark" aria-hidden="true"></i>
+                            <span class="sr-only">Clear filters</span>
+                        </span>
+                    </button>
 
+                    <div class="compare-controls">
+                        <!-- Hidden compare button kept only to satisfy JS state machine (do not show) -->
+                        <button class="control-button hidden" id="compareButton" aria-hidden="true" tabindex="-1" style="display:none;"></button>
+                        <!-- Clear selections button -->
+                        <button class="control-button-subtle hidden" id="clearCompareButton" aria-label="Clear selections" type="button">
+                            <span class="clear-filters-stack">
+                                <i class="fa-regular fa-rectangle-xmark" aria-hidden="true"></i>
+                                <span class="sr-only">Clear compare selections</span>
+                            </span>
+                        </button>
+                    </div>
+                </div>
+                <div class="search-chip" id="roster-search-chip">
+                    <button class="search-chip-toggle" type="button" aria-expanded="false" aria-controls="rosterSearchInput">
+                        <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                        <span class="sr-only">Search players</span>
+                    </button>
+                    <div class="search-chip-field">
+                        <input type="search" id="rosterSearchInput" autocomplete="off" placeholder="Search players" aria-label="Search players" />
+                        <button type="button" class="search-chip-clear" aria-label="Clear search">
+                            <i class="fa-solid fa-circle-xmark" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-</div>
-</div>
+    <div class="legacy-action-slots" aria-hidden="true">
+        <div class="analyzer-button-slot" id="analyzer-button-slot">
+            <div class="analyzer-button-container">
+                <button aria-label="Open League Analyzer" class="menu-button analyzer-button" id="analyzeLeagueButton" type="button">
+                    <i class="fa-solid fa-square-poll-vertical analyzer-icon" aria-hidden="true"></i>
+                    <span class="analyzer-label">Analyzer</span>
+                </button>
+            </div>
+        </div>
+        <div class="research-button-slot" id="research-button-slot">
+            <div class="research-button-container">
+                <button class="menu-button analyzer-button research-button" id="researchButton" type="button" aria-label="Open Research insights">
+                    <i class="fa-solid fa-flask-vial analyzer-icon" aria-hidden="true"></i>
+                    <span class="analyzer-label">Research</span>
+                </button>
+            </div>
+        </div>
+    </div>
+    <div class="header-quick-links" id="header-quick-links" aria-label="Research shortcuts"></div>
+    <div class="username-area">
+        <input autocapitalize="none" autocomplete="username" autocorrect="off" id="usernameInput" inputmode="text" name="username" placeholder="SLPR Username..." type="text" value="The_Oracle" />
+    </div>
+    <div class="app-view-switcher primary-switcher">
+        <button id="fetchRostersButton">Rosters</button>
+        <button id="fetchOwnershipButton">Ownership%</button>
+    </div>
 </header>
 </div>
 <main class="container mx-auto" id="content">
