@@ -4757,6 +4757,411 @@ body[data-page="research"] .app-header {
   text-shadow: 0 0 6px rgba(11, 14, 22, 0.6);
 }
 
+.syop-violin-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.syop-violin-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem;
+}
+
+.syop-violin-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.syop-legend-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid rgba(132, 146, 255, 0.22);
+  background: rgba(15, 18, 33, 0.68);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(10px);
+  color: rgba(233, 236, 249, 0.88);
+  font-size: 0.82rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease;
+}
+
+.syop-legend-chip .chip-dot {
+  width: 0.65rem;
+  height: 0.65rem;
+  border-radius: 999px;
+  box-shadow: 0 0 8px rgba(94, 122, 255, 0.45);
+}
+
+.syop-legend-chip .chip-label {
+  font-weight: 700;
+  letter-spacing: 0.2em;
+}
+
+.syop-legend-chip.active {
+  border-color: rgba(99, 102, 241, 0.6);
+  background: rgba(24, 27, 46, 0.82);
+  transform: translateY(-1px);
+}
+
+.syop-legend-chip:hover,
+.syop-legend-chip:focus-visible {
+  border-color: rgba(125, 138, 255, 0.75);
+  outline: none;
+}
+
+.syop-table-toggle {
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  border: 1px solid rgba(132, 146, 255, 0.24);
+  background: rgba(12, 15, 30, 0.75);
+  color: rgba(233, 236, 249, 0.92);
+  font-size: 0.82rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 700;
+  cursor: pointer;
+  backdrop-filter: blur(12px);
+  transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease;
+}
+
+.syop-table-toggle:hover,
+.syop-table-toggle:focus-visible {
+  border-color: rgba(125, 138, 255, 0.75);
+  background: rgba(18, 21, 38, 0.85);
+  outline: none;
+}
+
+.syop-violin-grid {
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.syop-violin-panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1.05rem 1.05rem 1.25rem;
+  border-radius: 20px;
+  background: rgba(15, 18, 33, 0.82);
+  border: 1px solid rgba(132, 146, 255, 0.18);
+  box-shadow: 0 18px 40px rgba(8, 10, 24, 0.45);
+  backdrop-filter: blur(14px);
+}
+
+.syop-violin-panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+.syop-violin-panel-header h4 {
+  margin: 0;
+  font-size: 0.98rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #f5f7ff;
+  font-weight: 700;
+}
+
+.syop-summary-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid rgba(132, 146, 255, 0.3);
+  background: rgba(12, 15, 28, 0.78);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(10px);
+  font-size: 0.74rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(233, 236, 249, 0.88);
+}
+
+.syop-summary-chip .chip-title {
+  font-weight: 600;
+}
+
+.syop-summary-chip .chip-value {
+  font-weight: 800;
+  color: #f5f7ff;
+  font-size: 0.9rem;
+  letter-spacing: 0.12em;
+}
+
+.syop-violin-statline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  color: rgba(233, 236, 249, 0.88);
+}
+
+.stat-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.32rem 0.7rem;
+  border-radius: 999px;
+  background: rgba(10, 13, 24, 0.75);
+  border: 1px solid rgba(125, 138, 255, 0.24);
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+}
+
+.syop-violin-chart {
+  position: relative;
+  width: 100%;
+}
+
+.syop-violin-svg {
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.syop-axis-group .axis-rail {
+  stroke: rgba(125, 138, 255, 0.18);
+  stroke-width: 1;
+}
+
+.syop-axis-group .axis-rail--plus {
+  stroke: rgba(125, 138, 255, 0.35);
+  stroke-dasharray: 2 3;
+}
+
+.syop-axis-group .axis-baseline {
+  stroke: rgba(255, 255, 255, 0.14);
+  stroke-dasharray: 6 6;
+}
+
+.syop-axis-group .axis-label {
+  fill: rgba(167, 175, 212, 0.82);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-anchor: middle;
+}
+
+.violin-shape {
+  fill-opacity: 0.75;
+  stroke-width: 1.5;
+}
+
+.iqr-band {
+  fill: rgba(132, 146, 255, 0.18);
+  stroke: rgba(132, 146, 255, 0.32);
+  stroke-width: 1.2;
+}
+
+.median-line {
+  stroke: #f5f7ff;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.45));
+}
+
+.syop-violin-dot {
+  stroke-width: 2.2;
+  opacity: 0.85;
+  cursor: pointer;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.syop-violin-dot.dot-outlier {
+  fill: rgba(255, 117, 209, 0.24);
+  opacity: 0.95;
+}
+
+.syop-violin-dot:hover,
+.syop-violin-dot:focus-visible,
+.syop-violin-dot.active {
+  transform: scale(1.25);
+  opacity: 1;
+  outline: none;
+}
+
+.syop-violin-tooltip {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform: translate(-50%, -100%);
+  padding: 0.55rem 0.8rem;
+  border-radius: 12px;
+  background: rgba(12, 15, 28, 0.92);
+  border: 1px solid rgba(132, 146, 255, 0.38);
+  box-shadow: 0 16px 32px rgba(5, 8, 22, 0.65);
+  backdrop-filter: blur(14px);
+  color: #f5f7ff;
+  font-size: 0.82rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  z-index: 5;
+  pointer-events: none;
+  min-width: 180px;
+}
+
+.syop-violin-tooltip[hidden] {
+  display: none;
+}
+
+.syop-violin-tooltip .tooltip-name {
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.syop-violin-tooltip .tooltip-meta {
+  font-size: 0.75rem;
+  color: rgba(182, 185, 214, 0.9);
+  letter-spacing: 0.04em;
+}
+
+.syop-table-container {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.syop-violin-table {
+  width: 100%;
+  min-width: 520px;
+  border-collapse: collapse;
+  background: rgba(14, 17, 30, 0.85);
+  border: 1px solid rgba(132, 146, 255, 0.18);
+  border-radius: 18px;
+  overflow: hidden;
+  color: rgba(233, 236, 249, 0.92);
+  box-shadow: 0 18px 36px rgba(8, 10, 24, 0.45);
+}
+
+.syop-violin-table caption {
+  caption-side: top;
+  padding: 0.75rem 1rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: rgba(182, 185, 214, 0.78);
+}
+
+.syop-violin-table thead {
+  background: rgba(12, 15, 28, 0.78);
+}
+
+.syop-violin-table th,
+.syop-violin-table td {
+  padding: 0.65rem 0.9rem;
+  text-align: left;
+  border-bottom: 1px solid rgba(132, 146, 255, 0.16);
+  font-size: 0.82rem;
+}
+
+.syop-violin-table tbody tr:nth-child(even) {
+  background: rgba(10, 13, 24, 0.65);
+}
+
+.syop-violin-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.syop-table-position {
+  min-width: 150px;
+  color: #f5f7ff;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  vertical-align: top;
+}
+
+.syop-table-position .position-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  background: rgba(15, 18, 33, 0.75);
+  font-size: 0.72rem;
+  letter-spacing: 0.2em;
+}
+
+.syop-table-position .position-name {
+  display: block;
+  margin-top: 0.4rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  color: rgba(182, 185, 214, 0.9);
+}
+
+.syop-violin-table .years-cell {
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  font-variant-numeric: tabular-nums;
+}
+
+.syop-violin-table .count-cell,
+.syop-violin-table .percent-cell {
+  font-variant-numeric: tabular-nums;
+  color: rgba(233, 236, 249, 0.9);
+}
+
+.syop-violin-table .percent-cell {
+  font-weight: 700;
+}
+
+@media (max-width: 900px) {
+  .syop-violin-grid {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .syop-violin-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .syop-violin-table {
+    min-width: 420px;
+  }
+
+  .syop-violin-table th,
+  .syop-violin-table td {
+    font-size: 0.78rem;
+    padding: 0.55rem 0.75rem;
+  }
+}
+
+@media (max-width: 420px) {
+  .syop-violin-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .syop-summary-chip {
+    font-size: 0.68rem;
+  }
+
+  .syop-table-toggle {
+    width: 100%;
+    text-align: center;
+  }
+}
+
 .syop-chart {
   width: 100%;
   min-height: 240px;
