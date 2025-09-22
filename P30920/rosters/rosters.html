@@ -39,11 +39,26 @@
         </svg>
     </button>
     <div id="dropdown-menu" class="dropdown-menu hidden">
-        <a href="../">Home</a>
-        <a href="#" id="menu-rosters">Rosters</a>
-        <a href="#" id="menu-ownership">Ownership</a>
-        <a href="#" id="menu-analyzer">League Analyzer</a>
-        <a href="#" id="menu-syop">SYOP</a>
+        <a href="../">
+            <i class="fa-solid fa-house-user" aria-hidden="true"></i>
+            <span>Home</span>
+        </a>
+        <a href="#" id="menu-rosters">
+            <i class="fa-solid fa-clipboard-list" aria-hidden="true"></i>
+            <span>Rosters</span>
+        </a>
+        <a href="#" id="menu-ownership">
+            <i class="fa-solid fa-percent" aria-hidden="true"></i>
+            <span>Ownership</span>
+        </a>
+        <a href="#" id="menu-analyzer">
+            <i class="fa-solid fa-square-poll-vertical" aria-hidden="true"></i>
+            <span>League Analyzer</span>
+        </a>
+        <a href="#" id="menu-research">
+            <i class="fa-solid fa-flask" aria-hidden="true"></i>
+            <span>Research</span>
+        </a>
     </div>
 </div>
 <div class="username-area">
@@ -74,7 +89,7 @@
 </div>
 <div class="header-row" id="filters-row">
     <div class="research-button-container">
-        <button class="menu-button analyzer-button research-button" id="syopResearchButton" type="button" aria-label="Open SYOP research">
+        <button class="menu-button analyzer-button research-button" id="researchButton" type="button" aria-label="Open Research insights">
             <i class="fa-solid fa-flask-vial analyzer-icon" aria-hidden="true"></i>
             <span class="analyzer-label">Research</span>
         </button>
@@ -87,10 +102,9 @@
             <button class="filter-btn" data-position="TE">TE</button>
             <button class="filter-btn" data-position="FLX">FLX</button>
         </div>
-        <button class="control-button-subtle" id="clearFiltersButton">
-            <span class="clear-filters-stack">
+        <button class="control-button-subtle" id="clearFiltersButton" aria-label="Clear filters">
+            <span class="clear-filters-stack" aria-hidden="true">
                 <i class="fa-solid fa-filter-circle-xmark"></i>
-                <span class="clear-filters-label">Clear</span>
             </span>
         </button>
 
