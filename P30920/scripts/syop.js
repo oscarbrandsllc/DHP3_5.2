@@ -842,49 +842,82 @@
       });
     });
 
-    roundLabelGroups.forEach((entries) => {
-      if (!entries.length) return;
+    const labelFontSize = isCompact ? 9.5 : 10.5;
+    const labelPadding = { x: 5, y: 3 };
+    const labelHeight = labelFontSize + 2 * labelPadding.y;
+    const verticalGap = 4;
 
-      const sorted = entries.slice().sort((a, b) => {
-        if (b.value === a.value) {
-          return a.series.key.localeCompare(b.series.key);
+    roundLabelGroups.forEach(entries => {
+      if (entries.length < 2) return;
+
+      const sorted = entries.slice().sort((a, b) => a.point.y - b.point.y);
+      const clusters = [];
+      if (sorted.length > 0) {
+        let currentCluster = [sorted[0]];
+        clusters.push(currentCluster);
+
+        for (let i = 1; i < sorted.length; i++) {
+          if (sorted[i].point.y - sorted[i - 1].point.y < labelHeight * 1.25) {
+            currentCluster.push(sorted[i]);
+          } else {
+            currentCluster = [sorted[i]];
+            clusters.push(currentCluster);
+          }
         }
-        return b.value - a.value;
-      });
-
-      const topBase = isCompact ? 16 : 18;
-      const topSpacing = isCompact ? 12 : 14;
-      const bottomBase = isCompact ? 16 : 18;
-      const bottomSpacing = isCompact ? 12 : 14;
-
-      const topGroup = sorted.slice(0, Math.min(2, sorted.length));
-      const bottomGroup = sorted.slice(topGroup.length);
-
-      for (let i = topGroup.length - 1; i >= 0; i--) {
-        const level = topGroup.length - 1 - i;
-        topGroup[i].offsetY = -(topBase + level * topSpacing);
       }
 
-      const bottomSorted = bottomGroup
-        .slice()
-        .sort((a, b) => (a.value === b.value ? a.series.key.localeCompare(b.series.key) : a.value - b.value));
-      bottomSorted.forEach((entry, index) => {
-        entry.offsetY = bottomBase + index * bottomSpacing;
+      clusters.forEach(cluster => {
+        if (cluster.length < 2) return;
+
+        const clusterMidY = cluster.reduce((sum, e) => sum + e.point.y, 0) / cluster.length;
+        const totalHeight = cluster.length * labelHeight + (cluster.length - 1) * verticalGap;
+        let startY = clusterMidY - totalHeight / 2;
+
+        cluster.forEach(entry => {
+          entry.finalY = startY + labelHeight / 2;
+          startY += labelHeight + verticalGap;
+          entry.offsetY = entry.finalY - entry.point.y;
+        });
       });
     });
 
-    labelEntries.forEach((entry) => {
-      g.appendChild(createSVG('text', {
-        x: entry.point.x + entry.offsetX,
-        y: entry.point.y + entry.offsetY,
+    labelEntries.forEach(entry => {
+      const textWidth = entry.text.length * labelFontSize * 0.58 + 4;
+      const rectWidth = textWidth + 2 * labelPadding.x;
+      const rectHeight = labelHeight;
+      const yPos = entry.point.y + (entry.offsetY || 0);
+
+      const labelGroup = createSVG('g', {
+        transform: `translate(${entry.point.x}, ${yPos})`,
+        class: 'draft-label-chip'
+      });
+
+      labelGroup.appendChild(createSVG('rect', {
+        x: -rectWidth / 2,
+        y: -rectHeight / 2,
+        width: rectWidth,
+        height: rectHeight,
+        rx: 5,
+        ry: 5,
+        fill: hexToRgba(colors.bg, 0.4),
+        stroke: hexToRgba(entry.series.color, 0.55),
+        'stroke-width': '1.5'
+      }));
+
+      labelGroup.appendChild(createSVG('text', {
+        x: 0,
+        y: 0,
         fill: entry.series.color,
-        'font-size': isCompact ? '9.5' : '10.5',
+        'font-size': `${labelFontSize}px`,
         'font-weight': '700',
-        'text-anchor': entry.anchor,
+        'text-anchor': 'middle',
+        'dominant-baseline': 'central',
         'paint-order': 'stroke',
-        stroke: 'rgba(11, 14, 22, 0.78)',
-        'stroke-width': isCompact ? '0.9' : '1.05'
+        stroke: 'rgba(11, 14, 22, 0.85)',
+        'stroke-width': '2.5',
+        'stroke-linecap': 'round'
       }, document.createTextNode(entry.text)));
+      g.appendChild(labelGroup);
     });
 
     g.appendChild(createSVG('line', {
