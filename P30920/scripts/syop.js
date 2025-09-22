@@ -340,6 +340,90 @@
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   }
 
+  function clamp(value, min, max) {
+    return Math.min(Math.max(value, min), max);
+  }
+
+  function parseHexColor(hex) {
+    if (typeof hex !== 'string') {
+      return { r: 0, g: 0, b: 0 };
+    }
+    let normalized = hex.trim().replace('#', '');
+    if (normalized.length === 3) {
+      normalized = normalized.split('').map((ch) => ch + ch).join('');
+    }
+    const value = Number.parseInt(normalized, 16);
+    if (Number.isNaN(value)) {
+      return { r: 0, g: 0, b: 0 };
+    }
+    return {
+      r: (value >> 16) & 255,
+      g: (value >> 8) & 255,
+      b: value & 255
+    };
+  }
+
+  function componentToHex(component) {
+    const value = clamp(Math.round(component), 0, 255).toString(16).padStart(2, '0');
+    return value;
+  }
+
+  function tintColor(hex, amount) {
+    const { r, g, b } = parseHexColor(hex);
+    const clamped = clamp(amount, -1, 1);
+    const target = clamped < 0 ? 0 : 255;
+    const ratio = Math.abs(clamped);
+    const mix = (channel) => channel + (target - channel) * ratio;
+    return `#${componentToHex(mix(r))}${componentToHex(mix(g))}${componentToHex(mix(b))}`;
+  }
+
+  function ensureBarGradient(svg, key, baseColor) {
+    let defs = svg.querySelector('defs');
+    if (!defs) {
+      defs = createSVG('defs');
+      svg.appendChild(defs);
+    }
+
+    const gradientId = `syop-bar-gradient-${String(key).toLowerCase()}`;
+    let gradient = defs.querySelector(`#${gradientId}`);
+    if (!gradient) {
+      gradient = createSVG('linearGradient', {
+        id: gradientId,
+        x1: '0',
+        x2: '0',
+        y1: '0',
+        y2: '1'
+      });
+
+      const topColor = tintColor(baseColor, 0.55);
+      const midColor = tintColor(baseColor, 0.1);
+      const bottomColor = tintColor(baseColor, -0.2);
+
+      gradient.appendChild(createSVG('stop', {
+        offset: '0%',
+        'stop-color': topColor,
+        'stop-opacity': '0.98'
+      }));
+      gradient.appendChild(createSVG('stop', {
+        offset: '60%',
+        'stop-color': midColor,
+        'stop-opacity': '0.94'
+      }));
+      gradient.appendChild(createSVG('stop', {
+        offset: '100%',
+        'stop-color': bottomColor,
+        'stop-opacity': '0.98'
+      }));
+
+      defs.appendChild(gradient);
+    }
+
+    return {
+      gradientId,
+      strokeColor: tintColor(baseColor, -0.25)
+    };
+  }
+
   function stripYearSuffix(text) {
     if (typeof text !== 'string') return text;
     return text.replace(/\s*yrs?\.?/gi, '').trim();
@@ -705,17 +789,17 @@
     }));
 
     const axisTitleY = createSVG('text', {
-      x: margin.left - 32,
+      x: margin.left - 33,
       y: margin.top + chartHeight / 2,
       class: 'syop-bar-axis-title syop-bar-axis-title-y',
-      transform: `rotate(-90 ${margin.left - 32} ${margin.top + chartHeight / 2})`
+      transform: `rotate(-90 ${margin.left - 33} ${margin.top + chartHeight / 2})`
     }, document.createTextNode('% of position'));
 
     axisGroup.appendChild(axisTitleY);
 
     const axisTitleX = createSVG('text', {
       x: margin.left + chartWidth / 2,
-      y: margin.top + chartHeight + 46,
+      y: margin.top + chartHeight + 36,
       class: 'syop-bar-axis-title syop-bar-axis-title-x'
     }, document.createTextNode('SYOP'));
 
@@ -725,6 +809,8 @@
 
     const bandWidth = chartWidth / Math.max(distribution.length, 1);
     const barWidth = Math.max(10, bandWidth * 0.64);
+
+    const { gradientId, strokeColor } = ensureBarGradient(svg, config.key, config.color);
 
     distribution.forEach((entry, index) => {
       const value = entry.percentage || 0;
@@ -738,10 +824,8 @@
         height: barHeight,
         rx: 6,
         class: 'syop-bar-rect',
-        style: {
-          '--bar-fill': hexToRgba(config.color, 0.38),
-          '--bar-stroke': hexToRgba(config.color, 0.82)
-        },
+        style: `fill:url(#${gradientId});stroke:${strokeColor};`,
+        'data-accent': strokeColor,
         tabindex: '0',
         role: 'button',
         'aria-label': `${config.key} ${Math.round(value * 10) / 10}%`
@@ -762,7 +846,7 @@
 
   function attachBarInteractions(element, config, percentage, tooltip, rootContainer) {
     if (!tooltip) return;
-    const color = config.color;
+    const accentColor = element?.dataset?.accent || config.color;
     const formattedPercent = `${Math.round(percentage * 10) / 10}%`;
 
     const hideTooltip = () => {
@@ -773,7 +857,7 @@
     const showTooltip = () => {
       element.classList.add('active');
       tooltip.innerHTML = '';
-      tooltip.style.setProperty('--tooltip-accent', color);
+      tooltip.style.setProperty('--tooltip-accent', accentColor);
       tooltip.appendChild(createEl('div', { class: 'tooltip-name' }, config.key));
       tooltip.appendChild(createEl('div', { class: 'tooltip-meta' }, formattedPercent));
 
