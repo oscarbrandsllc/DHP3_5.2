@@ -163,11 +163,11 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
             const quickLinksQuery = window.matchMedia('(min-width: 1024px)');
             const placeQuickLinks = (isDesktop) => {
                 if (isDesktop) {
-                    if (!headerQuickLinks.contains(analyzerButtonContainer)) {
-                        headerQuickLinks.appendChild(analyzerButtonContainer);
-                    }
                     if (!headerQuickLinks.contains(researchButtonContainer)) {
                         headerQuickLinks.appendChild(researchButtonContainer);
+                    }
+                    if (!headerQuickLinks.contains(analyzerButtonContainer)) {
+                        headerQuickLinks.appendChild(analyzerButtonContainer);
                     }
                 } else {
                     if (!analyzerButtonSlot.contains(analyzerButtonContainer)) {
