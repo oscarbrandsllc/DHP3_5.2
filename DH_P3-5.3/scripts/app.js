@@ -743,28 +743,6 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
         }
 
         function calculatePlayerStatsAndRanks(playerId) {
-            const seasonStats = state.playerSeasonStats?.[playerId];
-            if (seasonStats) {
-                const totalPts = typeof seasonStats.fpts_ppr === 'number' ? seasonStats.fpts_ppr : 0;
-                const ppg = typeof seasonStats.ppg === 'number'
-                    ? seasonStats.ppg
-                    : (seasonStats.games_played > 0 ? totalPts / seasonStats.games_played : 0);
-
-                const overallRank = typeof seasonStats.overall_rank_ppr === 'number' ? seasonStats.overall_rank_ppr : null;
-                const posRank = typeof seasonStats.pos_rank_ppr === 'number' ? seasonStats.pos_rank_ppr : null;
-                const ppgOverallRank = typeof seasonStats.ppg_rank_ppr === 'number' ? seasonStats.ppg_rank_ppr : null;
-                const ppgPosRank = typeof seasonStats.ppg_pos_rank_ppr === 'number' ? seasonStats.ppg_pos_rank_ppr : null;
-
-                return {
-                    total_pts: totalPts.toFixed(2),
-                    overallRank: overallRank ?? 'NA',
-                    posRank: posRank ?? 'NA',
-                    ppg: ppg.toFixed(2),
-                    ppgOverallRank: ppgOverallRank ?? 'NA',
-                    ppgPosRank: ppgPosRank ?? 'NA',
-                };
-            }
-
             const league = state.leagues.find(l => l.league_id === state.currentLeagueId);
             if (!league) return null;
             const scoringSettings = league.scoring_settings;
