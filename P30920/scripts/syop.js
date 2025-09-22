@@ -65,6 +65,37 @@
     { key: 'TE', percentKey: 'TE %', label: 'Tight Ends', color: colors.te }
   ];
 
+  const BAR_GRADIENTS = {
+    QB: [
+      { offset: '0%', color: '#FFF2F8', opacity: 0.24 },
+      { offset: '34%', color: '#FF8AB9', opacity: 0.36 },
+      { offset: '70%', color: '#FF3A75', opacity: 0.64 },
+      { offset: '100%', color: '#C01B56', opacity: 0.8 }
+    ],
+    RB: [
+      { offset: '0%', color: '#EBFFFB', opacity: 0.22 },
+      { offset: '32%', color: '#60F6E2', opacity: 0.34 },
+      { offset: '70%', color: '#00EBD3', opacity: 0.62 },
+      { offset: '100%', color: '#009E8B', opacity: 0.8 }
+    ],
+    WR: [
+      { offset: '0%', color: '#EFF6FF', opacity: 0.22 },
+      { offset: '32%', color: '#92C8FF', opacity: 0.38 },
+      { offset: '70%', color: '#58A7FF', opacity: 0.64 },
+      { offset: '100%', color: '#236FDD', opacity: 0.82 }
+    ],
+    TE: [
+      { offset: '0%', color: '#F8F0FF', opacity: 0.22 },
+      { offset: '32%', color: '#CFA6FF', opacity: 0.4 },
+      { offset: '70%', color: '#B469FF', opacity: 0.66 },
+      { offset: '100%', color: '#712DCC', opacity: 0.84 }
+    ],
+    DEFAULT: [
+      { offset: '0%', color: '#8F97FF', opacity: 0.2 },
+      { offset: '100%', color: '#5C4BFF', opacity: 0.54 }
+    ]
+  };
+
   const POSITION_TOTALS = {
     QB: 52,
     RB: 96,
@@ -662,6 +693,33 @@
       class: 'syop-bar-svg'
     });
 
+    const gradientStops = BAR_GRADIENTS[config.key] || BAR_GRADIENTS.DEFAULT;
+    const gradientId = `syop-bar-gradient-${config.key.toLowerCase()}`;
+    const defs = createSVG('defs');
+    const gradient = createSVG('linearGradient', {
+      id: gradientId,
+      gradientUnits: 'userSpaceOnUse',
+      x1: margin.left,
+      y1: margin.top + chartHeight,
+      x2: margin.left,
+      y2: margin.top
+    });
+
+    gradientStops.forEach((stop) => {
+      if (!stop) return;
+      const attrs = {
+        offset: stop.offset ?? '0%',
+        'stop-color': stop.color || '#7C83FF'
+      };
+      if (typeof stop.opacity === 'number') {
+        attrs['stop-opacity'] = String(stop.opacity);
+      }
+      gradient.appendChild(createSVG('stop', attrs));
+    });
+
+    defs.appendChild(gradient);
+    svg.appendChild(defs);
+
     svg.appendChild(createSVG('rect', {
       x: margin.left,
       y: margin.top,
@@ -705,17 +763,17 @@
     }));
 
     const axisTitleY = createSVG('text', {
-      x: margin.left - 32,
+      x: margin.left - 35,
       y: margin.top + chartHeight / 2,
       class: 'syop-bar-axis-title syop-bar-axis-title-y',
-      transform: `rotate(-90 ${margin.left - 32} ${margin.top + chartHeight / 2})`
+      transform: `rotate(-90 ${margin.left - 35} ${margin.top + chartHeight / 2})`
     }, document.createTextNode('% of position'));
 
     axisGroup.appendChild(axisTitleY);
 
     const axisTitleX = createSVG('text', {
       x: margin.left + chartWidth / 2,
-      y: margin.top + chartHeight + 46,
+      y: margin.top + chartHeight + 30,
       class: 'syop-bar-axis-title syop-bar-axis-title-x'
     }, document.createTextNode('SYOP'));
 
@@ -725,6 +783,8 @@
 
     const bandWidth = chartWidth / Math.max(distribution.length, 1);
     const barWidth = Math.max(10, bandWidth * 0.64);
+
+    const gradientStroke = (gradientStops[gradientStops.length - 1] || {}).color || config.color;
 
     distribution.forEach((entry, index) => {
       const value = entry.percentage || 0;
@@ -738,15 +798,12 @@
         height: barHeight,
         rx: 6,
         class: 'syop-bar-rect',
-        style: {
-          '--bar-fill': hexToRgba(config.color, 0.38),
-          '--bar-stroke': hexToRgba(config.color, 0.82)
-        },
+        style: `--bar-stroke: ${gradientStroke}; fill: url(#${gradientId});`,
         tabindex: '0',
         role: 'button',
         'aria-label': `${config.key} ${Math.round(value * 10) / 10}%`
       });
-      attachBarInteractions(rect, config, value, tooltip, rootContainer);
+      attachBarInteractions(rect, config, value, tooltip, rootContainer, gradientStroke);
       svg.appendChild(rect);
 
       const labelX = margin.left + index * bandWidth + bandWidth / 2;
@@ -760,9 +817,9 @@
     plotContainer.appendChild(svg);
   }
 
-  function attachBarInteractions(element, config, percentage, tooltip, rootContainer) {
+  function attachBarInteractions(element, config, percentage, tooltip, rootContainer, accentColor) {
     if (!tooltip) return;
-    const color = config.color;
+    const color = accentColor || config.color;
     const formattedPercent = `${Math.round(percentage * 10) / 10}%`;
 
     const hideTooltip = () => {
