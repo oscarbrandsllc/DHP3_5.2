@@ -27,37 +27,36 @@
 <!-- EDITED: Added a class for layout control -->
 <div class="relative z-10 content-wrapper">
 <div id="header-container">
-<header class="app-header glass-panel">
-<div class="header-row" id="primary-header-row">
-<div class="menu-container">
-    <button id="menu-button" class="menu-button">
-        <svg viewBox="0 0 100 80" width="20" height="20">
-            <rect width="100" height="15"></rect>
-            <rect y="30" width="100" height="15"></rect>
-            <rect y="60" width="100" height="15"></rect>
-        </svg>
-    </button>
-    <div id="dropdown-menu" class="dropdown-menu hidden">
-        <a href="../">
+<header class="app-header glass-panel liquid-rosters-header">
+<div class="liquid-glass-shell" id="rostersLiquidShell">
+<div class="header-row liquid-row" id="primary-header-row">
+<div class="liquid-nav-grid" id="mobileLiquidNav" role="navigation" aria-label="Primary">
+    <div class="menu-container">
+        <button id="menu-button" class="dh-logo-button" data-nav-role="home" aria-label="Dynasty Hub Home">
+            <span class="dh-logo-monogram" aria-hidden="true">DH</span>
+        </button>
+    </div>
+    <div class="liquid-nav-items">
+        <button class="liquid-nav-item" type="button" data-nav="home">
             <i class="fa-solid fa-house-user" aria-hidden="true"></i>
             <span>Home</span>
-        </a>
-        <a href="#" id="menu-rosters">
+        </button>
+        <button class="liquid-nav-item active" type="button" data-nav="rosters" aria-current="page">
             <i class="fa-solid fa-clipboard-list" aria-hidden="true"></i>
             <span>Rosters</span>
-        </a>
-        <a href="#" id="menu-ownership">
+        </button>
+        <button class="liquid-nav-item" type="button" data-nav="ownership">
             <i class="fa-solid fa-percent" aria-hidden="true"></i>
             <span>Ownership</span>
-        </a>
-        <a href="#" id="menu-research">
+        </button>
+        <button class="liquid-nav-item" type="button" data-nav="research">
             <i class="fa-solid fa-flask" aria-hidden="true"></i>
             <span>Research</span>
-        </a>
-        <a href="#" id="menu-analyzer">
+        </button>
+        <button class="liquid-nav-item" type="button" data-nav="analyzer">
             <i class="fa-solid fa-square-poll-vertical" aria-hidden="true"></i>
-            <span>League Analyzer</span>
-        </a>
+            <span>Lg.Analyze</span>
+        </button>
     </div>
 </div>
 <div class="header-quick-links" id="header-quick-links" aria-label="Research shortcuts"></div>
@@ -68,9 +67,31 @@
 <button id="fetchRostersButton">Rosters</button>
 <button id="fetchOwnershipButton">Ownership%</button>
 </div>
+<div id="dropdown-menu" class="dropdown-menu hidden">
+    <a href="../">
+        <i class="fa-solid fa-house-user" aria-hidden="true"></i>
+        <span>Home</span>
+    </a>
+    <a href="#" id="menu-rosters">
+        <i class="fa-solid fa-clipboard-list" aria-hidden="true"></i>
+        <span>Rosters</span>
+    </a>
+    <a href="#" id="menu-ownership">
+        <i class="fa-solid fa-percent" aria-hidden="true"></i>
+        <span>Ownership</span>
+    </a>
+    <a href="#" id="menu-research">
+        <i class="fa-solid fa-flask" aria-hidden="true"></i>
+        <span>Research</span>
+    </a>
+    <a href="#" id="menu-analyzer">
+        <i class="fa-solid fa-square-poll-vertical" aria-hidden="true"></i>
+        <span>League Analyzer</span>
+    </a>
+</div>
 </div>
 <div class="hidden" id="contextual-controls">
-<div class="header-row" id="secondary-header-row">
+<div class="header-row liquid-row" id="secondary-header-row">
 <div class="analyzer-button-slot" id="analyzer-button-slot">
 <div class="analyzer-button-container">
     <button aria-label="Open League Analyzer" class="menu-button analyzer-button" id="analyzeLeagueButton" type="button">
@@ -79,17 +100,23 @@
     </button>
 </div>
 </div>
-<div class="custom-select-wrapper">
+<div class="custom-select-wrapper league-chip-wrap">
 <select disabled="" id="leagueSelect">
 <option>Select a league...</option>
 </select>
 </div>
-<div class="view-switcher secondary-switcher">
-<button id="positionalViewBtn">Positional </button>
-<button id="depthChartViewBtn">Lineup</button>
+<div class="view-switcher secondary-switcher liquid-view-toggle" role="tablist" aria-label="Roster view">
+<button id="positionalViewBtn" type="button" data-view="positional">
+    <i class="fa-solid fa-id-card" aria-hidden="true"></i>
+    <span>Positional</span>
+</button>
+<button id="depthChartViewBtn" type="button" data-view="depthChart">
+    <i class="fa-solid fa-elevator" aria-hidden="true"></i>
+    <span>Lineup</span>
+</button>
 </div>
 </div>
-<div class="header-row" id="filters-row">
+<div class="header-row liquid-row" id="filters-row">
     <div class="research-button-slot" id="research-button-slot">
     <div class="research-button-container">
         <button class="menu-button analyzer-button research-button" id="researchButton" type="button" aria-label="Open Research insights">
@@ -125,7 +152,18 @@
             </button>
         </div>
 
+        <div class="liquid-search-chip" id="rosterSearchContainer">
+            <button class="search-trigger" type="button" id="rosterSearchTrigger" aria-expanded="false" aria-controls="rosterSearchInput">
+                <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                <span class="sr-only">Search players</span>
+            </button>
+            <div class="search-field">
+                <input type="search" id="rosterSearchInput" name="rosterSearchInput" placeholder="Search players" autocomplete="off" spellcheck="false" inputmode="search"/>
+            </div>
+        </div>
+
     </div>
+</div>
 </div>
 </div>
 </header>
