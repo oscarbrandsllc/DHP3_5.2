@@ -14,7 +14,7 @@
   <link rel="icon" type="image/png" sizes="16x16" href="../assets/icons/favicon-16.png?v=20250827002411?v=20250826235225" />
   <link rel="shortcut icon" href="../assets/icons/favicon.ico?v=20250827002411?v=20250826235225" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css"> 
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
  </head>
 <body data-page="rosters" class="p-2 sm:p-4">
 <!-- Replaced Background: Starfield -->
@@ -39,13 +39,29 @@
         </svg>
     </button>
     <div id="dropdown-menu" class="dropdown-menu hidden">
-        <a href="../">Home</a>
-        <a href="#" id="menu-rosters">Rosters</a>
-        <a href="#" id="menu-ownership">Ownership</a>
-        <a href="#" id="menu-analyzer">League Analyzer</a>
-        <a href="#" id="menu-syop">SYOP</a>
+        <a href="../">
+            <i class="fa fa-solid fa-house-user" aria-hidden="true"></i>
+            <span>Home</span>
+        </a>
+        <a href="#" id="menu-rosters">
+            <i class="fa fa-solid fa-clipboard-list" aria-hidden="true"></i>
+            <span>Rosters</span>
+        </a>
+        <a href="#" id="menu-ownership">
+            <i class="fa fa-solid fa-percent" aria-hidden="true"></i>
+            <span>Ownership</span>
+        </a>
+            <a href="#" id="menu-analyzer">
+                <i class="fa fa-solid fa-square-poll-vertical" aria-hidden="true"></i>
+                <span>League Analyzer</span>
+            </a>
+            <a href="#" id="menu-research">
+                <i class="fa fa-solid fa-flask" aria-hidden="true"></i>
+                <span>Research</span>
+            </a>
     </div>
 </div>
+<div class="header-quick-links" id="header-quick-links" aria-label="Research shortcuts"></div>
 <div class="username-area">
 <input autocapitalize="none" autocomplete="username" autocorrect="off" id="usernameInput" inputmode="text" name="username" placeholder="SLPR Username..." type="text" value="The_Oracle"/>
 </div>
@@ -56,11 +72,13 @@
 </div>
 <div class="hidden" id="contextual-controls">
 <div class="header-row" id="secondary-header-row">
+<div class="analyzer-button-slot" id="analyzer-button-slot">
 <div class="analyzer-button-container">
-<button aria-label="Open League Analyzer" class="menu-button analyzer-button" id="analyzeLeagueButton" type="button">
-<i class="fa-solid fa-square-poll-vertical analyzer-icon" aria-hidden="true"></i>
-<span class="analyzer-label">Lg.Anlz</span>
-</button>
+    <button aria-label="Open League Analyzer" class="menu-button analyzer-button" id="analyzeLeagueButton" type="button">
+        <i class="fa fa-solid fa-square-poll-vertical analyzer-icon" aria-hidden="true"></i>
+        <span class="analyzer-label">Analyzer</span>
+    </button>
+</div>
 </div>
 <div class="custom-select-wrapper">
 <select disabled="" id="leagueSelect">
@@ -73,11 +91,13 @@
 </div>
 </div>
 <div class="header-row" id="filters-row">
+    <div class="research-button-slot" id="research-button-slot">
     <div class="research-button-container">
-        <button class="menu-button analyzer-button research-button" id="syopResearchButton" type="button" aria-label="Open SYOP research">
-            <i class="fa-solid fa-flask-vial analyzer-icon" aria-hidden="true"></i>
+        <button class="menu-button analyzer-button research-button" id="researchButton" type="button" aria-label="Open Research insights">
+            <i class="fa fa-solid fa-flask-vial analyzer-icon" aria-hidden="true"></i>
             <span class="analyzer-label">Research</span>
         </button>
+    </div>
     </div>
     <div class="filters-container">
         <div id="positional-filters">
@@ -89,8 +109,8 @@
         </div>
         <button class="control-button-subtle" id="clearFiltersButton">
             <span class="clear-filters-stack">
-                <i class="fa-solid fa-filter-circle-xmark"></i>
-                <span class="clear-filters-label">Clear</span>
+                <i class="fa fa-solid fa-filter-circle-xmark" aria-hidden="true"></i>
+                <span class="sr-only">Clear filters</span>
             </span>
         </button>
 
@@ -100,8 +120,8 @@
             <!-- Clear selections button -->
             <button class="control-button-subtle hidden" id="clearCompareButton" aria-label="Clear selections">
                 <span class="clear-filters-stack">
-                    <i class="fa-regular fa-rectangle-xmark"></i>
-                    <span class="clear-filters-label">Clear</span>
+                    <i class="fa-regular fa-rectangle-xmark" aria-hidden="true"></i>
+                    <span class="sr-only">Clear compare selections</span>
                 </span>
             </button>
         </div>
