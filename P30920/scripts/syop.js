@@ -332,12 +332,56 @@
   }
 
   function hexToRgba(hex, alpha) {
-    const normalized = hex.replace('#', '');
-    const value = parseInt(normalized, 16);
-    const r = (value >> 16) & 255;
-    const g = (value >> 8) & 255;
-    const b = value & 255;
+    const { r, g, b } = parseHexColor(hex);
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
+
+  function parseHexColor(hex) {
+    if (!hex) {
+      return { r: 0, g: 0, b: 0 };
+    }
+    let normalized = hex.trim().replace('#', '');
+    if (normalized.length === 3) {
+      normalized = normalized.split('').map((char) => char + char).join('');
+    }
+    const value = parseInt(normalized, 16);
+    if (Number.isNaN(value)) {
+      return { r: 0, g: 0, b: 0 };
+    }
+    return {
+      r: (value >> 16) & 255,
+      g: (value >> 8) & 255,
+      b: value & 255
+    };
+  }
+
+  function channelToHex(channel) {
+    const clamped = Math.max(0, Math.min(255, Math.round(channel)));
+    return clamped.toString(16).padStart(2, '0');
+  }
+
+  function rgbToHex({ r, g, b }) {
+    return `#${channelToHex(r)}${channelToHex(g)}${channelToHex(b)}`;
+  }
+
+  function lightenHex(hex, amount = 0.2) {
+    const { r, g, b } = parseHexColor(hex);
+    const lighten = (channel) => channel + (255 - channel) * amount;
+    return rgbToHex({
+      r: lighten(r),
+      g: lighten(g),
+      b: lighten(b)
+    });
+  }
+
+  function darkenHex(hex, amount = 0.2) {
+    const { r, g, b } = parseHexColor(hex);
+    const darken = (channel) => channel * (1 - amount);
+    return rgbToHex({
+      r: darken(r),
+      g: darken(g),
+      b: darken(b)
+    });
   }
 
   function stripYearSuffix(text) {
@@ -662,6 +706,32 @@
       class: 'syop-bar-svg'
     });
 
+    const defs = createSVG('defs');
+    svg.appendChild(defs);
+
+    const gradientId = `syop-bar-gradient-${config.key}`;
+    const gradient = createSVG('linearGradient', {
+      id: gradientId,
+      x1: '0%',
+      y1: '0%',
+      x2: '0%',
+      y2: '100%'
+    });
+
+    [
+      { offset: '0%', color: lightenHex(config.color, 0.32), opacity: '0.9' },
+      { offset: '55%', color: config.color, opacity: '0.85' },
+      { offset: '100%', color: darkenHex(config.color, 0.3), opacity: '0.95' }
+    ].forEach((stop) => {
+      gradient.appendChild(createSVG('stop', {
+        offset: stop.offset,
+        'stop-color': stop.color,
+        'stop-opacity': stop.opacity
+      }));
+    });
+
+    defs.appendChild(gradient);
+
     svg.appendChild(createSVG('rect', {
       x: margin.left,
       y: margin.top,
@@ -704,18 +774,19 @@
       class: 'syop-bar-axis'
     }));
 
+    const yAxisTitleX = margin.left - 33;
     const axisTitleY = createSVG('text', {
-      x: margin.left - 32,
+      x: yAxisTitleX,
       y: margin.top + chartHeight / 2,
       class: 'syop-bar-axis-title syop-bar-axis-title-y',
-      transform: `rotate(-90 ${margin.left - 32} ${margin.top + chartHeight / 2})`
+      transform: `rotate(-90 ${yAxisTitleX} ${margin.top + chartHeight / 2})`
     }, document.createTextNode('% of position'));
 
     axisGroup.appendChild(axisTitleY);
 
     const axisTitleX = createSVG('text', {
       x: margin.left + chartWidth / 2,
-      y: margin.top + chartHeight + 46,
+      y: margin.top + chartHeight + (isCompact ? 40 : 42),
       class: 'syop-bar-axis-title syop-bar-axis-title-x'
     }, document.createTextNode('SYOP'));
 
@@ -738,10 +809,8 @@
         height: barHeight,
         rx: 6,
         class: 'syop-bar-rect',
-        style: {
-          '--bar-fill': hexToRgba(config.color, 0.38),
-          '--bar-stroke': hexToRgba(config.color, 0.82)
-        },
+        fill: `url(#${gradientId})`,
+        stroke: hexToRgba(darkenHex(config.color, 0.28), 0.88),
         tabindex: '0',
         role: 'button',
         'aria-label': `${config.key} ${Math.round(value * 10) / 10}%`

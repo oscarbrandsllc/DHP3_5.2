@@ -163,18 +163,21 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
             const quickLinksQuery = window.matchMedia('(min-width: 1024px)');
             const placeQuickLinks = (isDesktop) => {
                 if (isDesktop) {
-                    if (!headerQuickLinks.contains(analyzerButtonContainer)) {
-                        headerQuickLinks.appendChild(analyzerButtonContainer);
-                    }
                     if (!headerQuickLinks.contains(researchButtonContainer)) {
                         headerQuickLinks.appendChild(researchButtonContainer);
                     }
-                } else {
-                    if (!analyzerButtonSlot.contains(analyzerButtonContainer)) {
-                        analyzerButtonSlot.appendChild(analyzerButtonContainer);
+                    if (!headerQuickLinks.contains(analyzerButtonContainer)) {
+                        headerQuickLinks.appendChild(analyzerButtonContainer);
                     }
+                    if (headerQuickLinks.contains(researchButtonContainer) && headerQuickLinks.contains(analyzerButtonContainer)) {
+                        headerQuickLinks.insertBefore(researchButtonContainer, analyzerButtonContainer);
+                    }
+                } else {
                     if (!researchButtonSlot.contains(researchButtonContainer)) {
                         researchButtonSlot.appendChild(researchButtonContainer);
+                    }
+                    if (!analyzerButtonSlot.contains(analyzerButtonContainer)) {
+                        analyzerButtonSlot.appendChild(analyzerButtonContainer);
                     }
                 }
             };
