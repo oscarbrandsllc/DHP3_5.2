@@ -16,7 +16,13 @@
     qb: '#6311ee',
     rb: '#730fff',
     wr: '#8021ff',
-    te: '#922fff'
+    te: '#922fff',
+    gradients: {
+      qb: ['#d727ee', '#6311ee'],
+      rb: ['#c932ff', '#730fff'],
+      wr: ['#b250ff', '#8021ff'],
+      te: ['#9c6dff', '#922fff']
+    }
   };
 
   const SUNBURST_NODES = [
@@ -662,6 +668,18 @@
       class: 'syop-bar-svg'
     });
 
+    const defs = createSVG('defs');
+    Object.entries(colors.gradients).forEach(([key, gradColors]) => {
+      const gradient = createSVG('linearGradient', {
+        id: `grad-${key.toLowerCase()}`,
+        x1: '0%', y1: '0%', x2: '0%', y2: '100%'
+      });
+      gradient.appendChild(createSVG('stop', { offset: '0%', style: `stop-color:${gradColors[0]};stop-opacity:0.8` }));
+      gradient.appendChild(createSVG('stop', { offset: '100%', style: `stop-color:${gradColors[1]};stop-opacity:0.9` }));
+      defs.appendChild(gradient);
+    });
+    svg.appendChild(defs);
+
     svg.appendChild(createSVG('rect', {
       x: margin.left,
       y: margin.top,
@@ -704,18 +722,18 @@
       class: 'syop-bar-axis'
     }));
 
+    const yTitleX = margin.left - 37;
     const axisTitleY = createSVG('text', {
-      x: margin.left - 32,
+      x: yTitleX,
       y: margin.top + chartHeight / 2,
       class: 'syop-bar-axis-title syop-bar-axis-title-y',
-      transform: `rotate(-90 ${margin.left - 32} ${margin.top + chartHeight / 2})`
+      transform: `rotate(-90 ${yTitleX} ${margin.top + chartHeight / 2})`
     }, document.createTextNode('% of position'));
-
     axisGroup.appendChild(axisTitleY);
 
     const axisTitleX = createSVG('text', {
       x: margin.left + chartWidth / 2,
-      y: margin.top + chartHeight + 46,
+      y: margin.top + chartHeight + 40,
       class: 'syop-bar-axis-title syop-bar-axis-title-x'
     }, document.createTextNode('SYOP'));
 
@@ -739,7 +757,7 @@
         rx: 6,
         class: 'syop-bar-rect',
         style: {
-          '--bar-fill': hexToRgba(config.color, 0.38),
+          '--bar-fill': `url(#grad-${config.key.toLowerCase()})`,
           '--bar-stroke': hexToRgba(config.color, 0.82)
         },
         tabindex: '0',

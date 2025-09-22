@@ -4822,7 +4822,25 @@ body[data-page="research"] .app-header {
 }
 
 .syop-key-legend .syop-hero-card {
-  background: rgba(10, 13, 24, 0.78);
+  background: rgba(16, 20, 34, 0.32);
+  border: 1px solid rgba(132, 146, 255, 0.22);
+  border-radius: 999px;
+  box-shadow: none;
+  text-align: center;
+  padding: 0.45rem 0.8rem;
+}
+
+.syop-key-legend .syop-hero-card .label {
+  letter-spacing: 0.14em;
+  font-size: 0.61rem;
+  color: rgba(182, 185, 214, 0.8);
+}
+
+.syop-key-legend .syop-hero-card .value {
+  font-weight: 500;
+  font-size: 0.72rem;
+  line-height: 1.24;
+  color: rgba(226, 232, 240, 0.9);
 }
 
 .syop-line-legend {
@@ -5319,7 +5337,7 @@ body[data-page="research"] .app-header {
 }
 
 .syop-bar-area {
-  fill: rgba(14, 18, 34, 0.58);
+  fill: transparent;
   stroke: rgba(255, 255, 255, 0.06);
   stroke-width: 1px;
 }
