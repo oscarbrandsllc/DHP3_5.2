@@ -67,28 +67,28 @@
 
   const BAR_GRADIENTS = {
     QB: [
-      { offset: '0%', color: '#4BE0E0', opacity: 0.58 },
-      { offset: '55%', color: '#6C7EFF', opacity: 0.55 },
-      { offset: '100%', color: '#324DFF', opacity: 0.66 }
+      { offset: '0%', color: 'rgba(255, 58, 117, 0.82)' },
+      { offset: '56%', color: 'rgba(255, 114, 164, 0.55)' },
+      { offset: '100%', color: 'rgba(252, 185, 217, 0.38)' }
     ],
     RB: [
-      { offset: '0%', color: '#F973C4', opacity: 0.6 },
-      { offset: '56%', color: '#F68A6F', opacity: 0.56 },
-      { offset: '100%', color: '#D94D8B', opacity: 0.68 }
+      { offset: '0%', color: 'rgba(0, 235, 199, 0.78)' },
+      { offset: '56%', color: 'rgba(87, 255, 222, 0.52)' },
+      { offset: '100%', color: 'rgba(168, 255, 234, 0.32)' }
     ],
     WR: [
-      { offset: '0%', color: '#8F97FF', opacity: 0.6 },
-      { offset: '54%', color: '#E380C4', opacity: 0.56 },
-      { offset: '100%', color: '#6846FF', opacity: 0.68 }
+      { offset: '0%', color: 'rgba(88, 167, 255, 0.84)' },
+      { offset: '56%', color: 'rgba(146, 196, 255, 0.54)' },
+      { offset: '100%', color: 'rgba(208, 225, 255, 0.34)' }
     ],
     TE: [
-      { offset: '0%', color: '#5AE4FF', opacity: 0.6 },
-      { offset: '58%', color: '#7FFFCF', opacity: 0.52 },
-      { offset: '100%', color: '#22A691', opacity: 0.7 }
+      { offset: '0%', color: 'rgba(180, 105, 255, 0.82)' },
+      { offset: '56%', color: 'rgba(204, 151, 255, 0.55)' },
+      { offset: '100%', color: 'rgba(228, 196, 255, 0.34)' }
     ],
     DEFAULT: [
-      { offset: '0%', color: '#8F97FF', opacity: 0.52 },
-      { offset: '100%', color: '#5C4BFF', opacity: 0.66 }
+      { offset: '0%', color: 'rgba(143, 151, 255, 0.52)' },
+      { offset: '100%', color: 'rgba(92, 75, 255, 0.66)' }
     ]
   };
 

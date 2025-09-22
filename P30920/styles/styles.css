@@ -5333,8 +5333,8 @@ body[data-page="research"] .app-header {
 }
 
 .syop-bar-area {
-  fill: rgba(12, 16, 30, 0.08);
-  stroke: rgba(140, 154, 255, 0.12);
+  fill: rgba(12, 16, 30, 0.02);
+  stroke: rgba(140, 154, 255, 0.08);
   stroke-width: 1px;
 }
 
