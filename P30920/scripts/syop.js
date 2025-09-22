@@ -43,20 +43,30 @@
     { id: 'te-baseline-mode', parent: 'te', label: 'Baseline M', subtitle: '3.0 yrs', value: 3, abbr: 'BOM', stat: '3.0' }
   ];
 
-  const SYOP_DATA = [
-    { SYOP: '1', 'QB %': 6.67, 'RB %': 27.54, 'WR %': 13.0, 'TE %': 26.92 },
-    { SYOP: '2', 'QB %': 11.11, 'RB %': 20.29, 'WR %': 14.1, 'TE %': 26.92 },
-    { SYOP: '3', 'QB %': 8.89, 'RB %': 11.59, 'WR %': 14.1, 'TE %': 7.69 },
-    { SYOP: '4', 'QB %': 8.89, 'RB %': 11.4, 'WR %': 12.0, 'TE %': 7.69 },
-    { SYOP: '5', 'QB %': 4.44, 'RB %': 13.04, 'WR %': 5.4, 'TE %': 0.4 },
-    { SYOP: '6', 'QB %': 13.33, 'RB %': 5.8, 'WR %': 7.6, 'TE %': 7.69 },
-    { SYOP: '7', 'QB %': 8.89, 'RB %': 1.45, 'WR %': 13.0, 'TE %': 7.69 },
-    { SYOP: '8', 'QB %': 4.44, 'RB %': 2.9, 'WR %': 9.8, 'TE %': 0.4 },
-    { SYOP: '9', 'QB %': 11.11, 'RB %': 3.3, 'WR %': 2.2, 'TE %': 3.85 },
-    { SYOP: '10', 'QB %': 2.22, 'RB %': 1.45, 'WR %': 4.49, 'TE %': 3.51 },
-    { SYOP: '11', 'QB %': 0.4, 'RB %': 1.45, 'WR %': 2.2, 'TE %': 3.85 },
-    { SYOP: '12+', 'QB %': 20.0, 'RB %': 0.4, 'WR %': 2.2, 'TE %': 3.85 }
-  ];
+  const SYOP_BUCKETS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12+'];
+
+  const SYOP_POSITION_BUCKETS = {
+    QB: {
+      total: 45,
+      counts: { '1': 3, '2': 5, '3': 4, '4': 4, '5': 2, '6': 6, '7': 4, '8': 2, '9': 5, '10': 1, '11': 0, '12+': 9 },
+      label: 'Quarterbacks'
+    },
+    RB: {
+      total: 108,
+      counts: { '1': 30, '2': 22, '3': 12, '4': 12, '5': 14, '6': 6, '7': 2, '8': 3, '9': 3, '10': 2, '11': 2, '12+': 0 },
+      label: 'Running Backs'
+    },
+    WR: {
+      total: 92,
+      counts: { '1': 12, '2': 13, '3': 13, '4': 11, '5': 5, '6': 7, '7': 12, '8': 9, '9': 2, '10': 4, '11': 2, '12+': 2 },
+      label: 'Wide Receivers'
+    },
+    TE: {
+      total: 52,
+      counts: { '1': 14, '2': 14, '3': 4, '4': 4, '5': 0, '6': 4, '7': 4, '8': 0, '9': 2, '10': 2, '11': 2, '12+': 2 },
+      label: 'Tight Ends'
+    }
+  };
 
   const GAUGES = [
     { key: 'QB', value: 7.22, color: colors.qb },
@@ -100,11 +110,44 @@
   };
 
   const SERIES_CONFIG = [
-    { key: 'QB %', label: 'QB %', color: colors.qb },
-    { key: 'RB %', label: 'RB %', color: colors.rb },
-    { key: 'WR %', label: 'WR %', color: colors.wr },
-    { key: 'TE %', label: 'TE %', color: colors.te }
+    { key: 'QB', label: 'QB', color: colors.qb },
+    { key: 'RB', label: 'RB', color: colors.rb },
+    { key: 'WR', label: 'WR', color: colors.wr },
+    { key: 'TE', label: 'TE', color: colors.te }
   ];
+
+  const SYOP_POSITION_PLAYERS = (() => {
+    const playersByPosition = new Map();
+    SERIES_CONFIG.forEach((series) => {
+      const bucketInfo = SYOP_POSITION_BUCKETS[series.key];
+      const players = [];
+      if (!bucketInfo) {
+        playersByPosition.set(series.key, players);
+        return;
+      }
+      let index = 1;
+      SYOP_BUCKETS.forEach((bucket) => {
+        const count = bucketInfo.counts[bucket] || 0;
+        for (let i = 0; i < count; i += 1) {
+          const name = `${series.label} Player ${String(index).padStart(2, '0')}`;
+          players.push({
+            id: `${series.key}-${index}`,
+            position: series.key,
+            name,
+            bucket,
+            syopValue: bucket === '12+' ? 12.6 : Number(bucket),
+            displayYears: bucket
+          });
+          index += 1;
+        }
+      });
+      playersByPosition.set(series.key, players);
+    });
+    return playersByPosition;
+  })();
+
+  let activeSyopPositions = new Set(SERIES_CONFIG.map((series) => series.key));
+  let syopTableMode = false;
 
   let resizeTimer = null;
 
@@ -411,52 +454,476 @@
     if (!container) return;
     container.innerHTML = '';
 
-    const scroll = createEl('div', { class: 'syop-heatmap-scroll' });
-    const grid = createEl('div', { class: 'syop-heatmap' });
+    const wrapper = createEl('div', { class: 'syop-violin-wrapper' });
+    const controls = createEl('div', { class: 'syop-violin-controls' });
+    const legend = createEl('div', { class: 'syop-violin-legend', role: 'group', 'aria-label': 'Toggle positions' });
 
-    const headerRow = createEl('div', { class: 'syop-heatmap-row syop-heatmap-header' },
-      createEl('div', { class: 'syop-heatmap-cell bucket-cell' }, 'SYOP')
-    );
     SERIES_CONFIG.forEach((series) => {
-      headerRow.appendChild(createEl('div', {
-        class: 'syop-heatmap-cell position-header',
-        style: { '--header-accent': series.color }
-      }, series.label.replace('%', '').trim()));
-    });
-    grid.appendChild(headerRow);
+      const isActive = activeSyopPositions.has(series.key);
+      const button = createEl('button', {
+        type: 'button',
+        class: `syop-legend-chip${isActive ? ' active' : ''}`,
+        'data-position': series.key,
+        'aria-pressed': String(isActive)
+      },
+      createEl('span', { class: 'chip-dot', style: { backgroundColor: series.color } }),
+      createEl('span', { class: 'chip-label' }, series.label));
 
-    const maxValue = Math.max(...SYOP_DATA.flatMap((row) => SERIES_CONFIG.map((series) => row[series.key] || 0)));
-
-    SYOP_DATA.forEach((row) => {
-      const rowEl = createEl('div', { class: 'syop-heatmap-row' });
-      rowEl.appendChild(createEl('div', { class: 'syop-heatmap-cell bucket-cell' }, row.SYOP));
-
-      SERIES_CONFIG.forEach((series) => {
-        const value = row[series.key] || 0;
-        const intensity = maxValue > 0 ? value / maxValue : 0;
-        const width = Math.max(12, Math.min(100, intensity * 100));
-        const fill = hexToRgba(series.color, 0.35 + 0.55 * intensity);
-        const bar = createEl('span', {
-          class: 'syop-heatmap-bar',
-          style: {
-            width: `${width}%`,
-            background: fill
-          }
-        });
-        const cell = createEl('div', {
-          class: 'syop-heatmap-cell value-cell',
-          style: { '--accent-color': series.color }
-        },
-        bar,
-        createEl('span', { class: 'syop-heatmap-value' }, `${value.toFixed(1)}%`));
-        rowEl.appendChild(cell);
+      button.addEventListener('click', () => {
+        const currentlyActive = activeSyopPositions.has(series.key);
+        if (currentlyActive && activeSyopPositions.size === 1) {
+          return;
+        }
+        if (currentlyActive) {
+          activeSyopPositions.delete(series.key);
+        } else {
+          activeSyopPositions.add(series.key);
+        }
+        renderBarChart();
       });
 
-      grid.appendChild(rowEl);
+      button.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          button.click();
+        }
+      });
+
+      legend.appendChild(button);
     });
 
-    scroll.appendChild(grid);
-    container.appendChild(scroll);
+    controls.appendChild(legend);
+
+    const toggle = createEl('button', {
+      type: 'button',
+      class: 'syop-table-toggle',
+      'aria-pressed': String(syopTableMode)
+    }, syopTableMode ? 'View charts' : 'View as table');
+    toggle.addEventListener('click', () => {
+      syopTableMode = !syopTableMode;
+      renderBarChart();
+    });
+    controls.appendChild(toggle);
+
+    wrapper.appendChild(controls);
+
+    const grid = createEl('div', { class: 'syop-violin-grid' });
+    const tableContainer = createEl('div', { class: 'syop-table-container' });
+    const tooltip = createEl('div', { class: 'syop-violin-tooltip', role: 'tooltip', id: 'syop-violin-tooltip', hidden: '' });
+
+    const activeSeries = SERIES_CONFIG.filter((series) => activeSyopPositions.has(series.key));
+    if (!syopTableMode) {
+      grid.removeAttribute('hidden');
+      tableContainer.innerHTML = '';
+      const containerWidth = container.clientWidth || 0;
+      const isCompact = containerWidth > 0 && containerWidth < 720;
+      const baseWidth = isCompact ? 320 : 360;
+      const baseHeight = isCompact ? 240 : 260;
+      const dotRadius = isCompact ? 5 : 6.5;
+
+      activeSeries.forEach((series) => {
+        const panel = renderViolinPanel({ series, baseWidth, baseHeight, dotRadius, tooltip, wrapper });
+        grid.appendChild(panel);
+      });
+
+      if (activeSeries.length === 0) {
+        grid.appendChild(createEl('div', { class: 'syop-empty-state' }, 'Select at least one position to view the distribution.'));
+      }
+
+      tableContainer.setAttribute('hidden', '');
+    } else {
+      grid.setAttribute('hidden', '');
+      tableContainer.removeAttribute('hidden');
+      tableContainer.innerHTML = '';
+      const table = renderSyopTable(activeSeries);
+      tableContainer.appendChild(table);
+    }
+
+    wrapper.appendChild(grid);
+    wrapper.appendChild(tableContainer);
+    wrapper.appendChild(tooltip);
+    container.appendChild(wrapper);
+  }
+
+  function renderSyopTable(seriesList) {
+    const activeSeries = seriesList.length > 0 ? seriesList : SERIES_CONFIG;
+    const table = createEl('table', { class: 'syop-violin-table' });
+    table.appendChild(createEl('caption', {}, 'SYOP distributions by position and season count'));
+
+    const headerRow = createEl('tr', {},
+      createEl('th', { scope: 'col' }, 'Position'),
+      createEl('th', { scope: 'col' }, 'SYOP years'),
+      createEl('th', { scope: 'col' }, 'Players'),
+      createEl('th', { scope: 'col' }, '% of position')
+    );
+    table.appendChild(createEl('thead', {}, headerRow));
+
+    const body = createEl('tbody');
+
+    activeSeries.forEach((series) => {
+      const bucketInfo = SYOP_POSITION_BUCKETS[series.key];
+      if (!bucketInfo) return;
+      const entries = SYOP_BUCKETS
+        .map((bucket) => ({ bucket, count: bucketInfo.counts[bucket] || 0 }))
+        .filter((entry) => entry.count > 0);
+      if (entries.length === 0) return;
+
+      entries.forEach((entry, index) => {
+        const cells = [];
+        if (index === 0) {
+          cells.push(createEl('th', {
+            scope: 'rowgroup',
+            rowspan: String(entries.length),
+            class: 'syop-table-position'
+          },
+          createEl('span', { class: 'position-pill', style: { borderColor: series.color } }, series.label),
+          createEl('span', { class: 'position-name' }, SYOP_POSITION_BUCKETS[series.key]?.label || series.label)));
+        }
+        const percent = bucketInfo.total > 0 ? (entry.count / bucketInfo.total) * 100 : 0;
+        cells.push(createEl('td', { class: 'years-cell' }, entry.bucket));
+        cells.push(createEl('td', { class: 'count-cell' }, String(entry.count)));
+        cells.push(createEl('td', { class: 'percent-cell' }, `${percent.toFixed(1)}%`));
+        body.appendChild(createEl('tr', {}, ...cells));
+      });
+    });
+
+    table.appendChild(body);
+    return table;
+  }
+
+  function renderViolinPanel({ series, baseWidth, baseHeight, dotRadius, tooltip, wrapper }) {
+    const panel = createEl('div', { class: 'syop-violin-panel', 'data-position': series.key });
+    const header = createEl('header', { class: 'syop-violin-panel-header' },
+      createEl('h4', {}, series.label),
+      createEl('span', { class: 'syop-summary-chip', style: { borderColor: series.color } },
+        createEl('span', { class: 'chip-title' }, '≥2 SYOP'),
+        createEl('span', { class: 'chip-value' }, `${formatShareTwoPlus(series.key)}%`))
+    );
+    panel.appendChild(header);
+
+    const players = (SYOP_POSITION_PLAYERS.get(series.key) || []).slice();
+    if (players.length === 0) {
+      panel.appendChild(createEl('p', { class: 'syop-empty-state' }, 'No qualifying players in this segment.'));
+      return panel;
+    }
+
+    const positionInfo = SYOP_POSITION_BUCKETS[series.key] || { counts: {}, total: players.length };
+    players.forEach((player) => {
+      const bucketCount = positionInfo.counts[player.bucket] || 0;
+      player.bucketCount = bucketCount;
+      player.bucketShare = positionInfo.total > 0 ? (bucketCount / positionInfo.total) * 100 : 0;
+    });
+
+    const values = players.map((player) => player.syopValue).sort((a, b) => a - b);
+    const stats = computeViolinStats(values);
+
+    panel.appendChild(createEl('div', { class: 'syop-violin-statline' },
+      createEl('span', { class: 'stat-chip' }, `Median ${formatYears(stats.median)}`),
+      createEl('span', { class: 'stat-chip' }, `IQR ${formatYears(stats.q1, { includeUnits: false })} – ${formatYears(stats.q3, { includeUnits: false })} yrs`)
+    ));
+
+    const chart = createEl('div', { class: 'syop-violin-chart' });
+    const svg = createSVG('svg', {
+      viewBox: `0 0 ${baseWidth} ${baseHeight}`,
+      class: 'syop-violin-svg',
+      role: 'img',
+      'aria-label': `${series.label} SYOP distribution`
+    });
+
+    const margin = { top: 36, right: 28, bottom: 46, left: 52 };
+    const chartWidth = baseWidth - margin.left - margin.right;
+    const chartHeight = baseHeight - margin.top - margin.bottom;
+    const centerY = margin.top + chartHeight / 2;
+
+    const domain = { min: 0, max: 13.2 };
+    const xScale = (value) => {
+      const clamped = Math.max(domain.min, Math.min(domain.max, value));
+      return margin.left + ((clamped - domain.min) / (domain.max - domain.min)) * chartWidth;
+    };
+
+    const densityPoints = computeDensity(values, domain);
+    const maxDensity = densityPoints.reduce((acc, point) => Math.max(acc, point.y), 0.0001);
+    const yScale = (density) => margin.top + chartHeight / 2 - (density / maxDensity) * (chartHeight / 2 - 12);
+    const yScaleLower = (density) => margin.top + chartHeight / 2 + (density / maxDensity) * (chartHeight / 2 - 12);
+
+    const axisGroup = createSVG('g', { class: 'syop-axis-group' });
+    const baseline = createSVG('line', {
+      x1: margin.left,
+      y1: centerY,
+      x2: margin.left + chartWidth,
+      y2: centerY,
+      class: 'axis-baseline'
+    });
+    axisGroup.appendChild(baseline);
+
+    for (let tick = 0; tick <= 11; tick += 1) {
+      const x = xScale(tick);
+      axisGroup.appendChild(createSVG('line', {
+        x1: x,
+        x2: x,
+        y1: margin.top,
+        y2: margin.top + chartHeight,
+        class: 'axis-rail'
+      }));
+      axisGroup.appendChild(createSVG('text', {
+        x,
+        y: margin.top + chartHeight + 20,
+        class: 'axis-label'
+      }, tick.toString()));
+    }
+
+    const x12plus = xScale(12.6);
+    axisGroup.appendChild(createSVG('line', {
+      x1: x12plus,
+      x2: x12plus,
+      y1: margin.top,
+      y2: margin.top + chartHeight,
+      class: 'axis-rail axis-rail--plus'
+    }));
+    axisGroup.appendChild(createSVG('text', {
+      x: x12plus,
+      y: margin.top + chartHeight + 20,
+      class: 'axis-label'
+    }, '12+'));
+
+    svg.appendChild(axisGroup);
+
+    if (densityPoints.length > 0) {
+      const topPath = densityPoints
+        .map((point, index) => `${index === 0 ? 'M' : 'L'} ${xScale(point.x)} ${yScale(point.y)}`)
+        .join(' ');
+      const bottomPath = densityPoints
+        .slice()
+        .reverse()
+        .map((point) => `L ${xScale(point.x)} ${yScaleLower(point.y)}`)
+        .join(' ');
+      const violinPath = `${topPath} ${bottomPath} Z`;
+      svg.appendChild(createSVG('path', {
+        d: violinPath,
+        class: 'violin-shape',
+        fill: hexToRgba(series.color, 0.22),
+        stroke: hexToRgba(series.color, 0.5)
+      }));
+    }
+
+    const bandHeight = Math.min(34, chartHeight * 0.38);
+    const q1x = xScale(stats.q1);
+    const q3x = xScale(stats.q3);
+    const medianX = xScale(stats.median);
+
+    svg.appendChild(createSVG('rect', {
+      x: Math.min(q1x, q3x),
+      y: centerY - bandHeight / 2,
+      width: Math.max(1, Math.abs(q3x - q1x)),
+      height: bandHeight,
+      class: 'iqr-band'
+    }));
+
+    svg.appendChild(createSVG('line', {
+      x1: medianX,
+      y1: centerY - bandHeight * 0.65,
+      x2: medianX,
+      y2: centerY + bandHeight * 0.65,
+      class: 'median-line'
+    }));
+
+    const jitteredPoints = players.map((player) => ({
+      player,
+      xValue: player.syopValue + jitterForId(player.id)
+    }));
+    const swarmPoints = computeBeeswarm(jitteredPoints, xScale, centerY, dotRadius, chartHeight / 2 - dotRadius - 6);
+
+    swarmPoints.forEach((point) => {
+      const isOutlier = point.player.syopValue < stats.lowerFence || point.player.syopValue > stats.upperFence;
+      const dot = createSVG('circle', {
+        cx: point.x,
+        cy: point.y,
+        r: dotRadius,
+        class: `syop-violin-dot${isOutlier ? ' dot-outlier' : ''}`,
+        'data-player-id': point.player.id,
+        stroke: series.color,
+        fill: 'rgba(11, 14, 22, 0.92)',
+        tabindex: '0',
+        role: 'button',
+        'aria-label': `${point.player.name} — ${point.player.displayYears} SYOP years`
+      });
+      attachDotInteractions({ dot, tooltip, wrapper, player: point.player });
+      svg.appendChild(dot);
+    });
+
+    chart.appendChild(svg);
+    panel.appendChild(chart);
+    return panel;
+  }
+
+  function computeDensity(values, domain) {
+    if (!values || values.length === 0) return [];
+    const sorted = values.slice().sort((a, b) => a - b);
+    const extent = sorted[sorted.length - 1] - sorted[0];
+    const bandwidth = Math.max(0.45, extent > 0 ? extent / Math.sqrt(sorted.length) : 0.6);
+    const step = 0.25;
+    const points = [];
+    for (let x = domain.min; x <= domain.max; x += step) {
+      const y = kernelDensityEstimate(x, sorted, bandwidth);
+      points.push({ x, y });
+    }
+    return points;
+  }
+
+  function kernelDensityEstimate(x, values, bandwidth) {
+    if (bandwidth <= 0) {
+      return 0;
+    }
+    const coefficient = 1 / (values.length * bandwidth);
+    let sum = 0;
+    for (let i = 0; i < values.length; i += 1) {
+      const u = (x - values[i]) / bandwidth;
+      sum += Math.exp(-0.5 * u * u);
+    }
+    return coefficient * (sum / Math.sqrt(2 * Math.PI));
+  }
+
+  function computeViolinStats(values) {
+    if (!values || values.length === 0) {
+      return { median: 0, q1: 0, q3: 0, lowerFence: 0, upperFence: 0 };
+    }
+    const sorted = values.slice().sort((a, b) => a - b);
+    const median = quantile(sorted, 0.5);
+    const q1 = quantile(sorted, 0.25);
+    const q3 = quantile(sorted, 0.75);
+    const iqr = q3 - q1;
+    const lowerFence = q1 - 1.5 * iqr;
+    const upperFence = q3 + 1.5 * iqr;
+    return { median, q1, q3, lowerFence, upperFence };
+  }
+
+  function quantile(sorted, q) {
+    if (!sorted || sorted.length === 0) return 0;
+    if (sorted.length === 1) return sorted[0];
+    const pos = (sorted.length - 1) * q;
+    const base = Math.floor(pos);
+    const rest = pos - base;
+    const next = sorted[Math.min(sorted.length - 1, base + 1)];
+    return sorted[base] + rest * (next - sorted[base]);
+  }
+
+  function formatYears(value, { includeUnits = true } = {}) {
+    if (!Number.isFinite(value)) return includeUnits ? '— yrs' : '—';
+    let label;
+    if (value >= 12.4) {
+      label = '12+';
+    } else {
+      const rounded = Math.round(value * 10) / 10;
+      if (Math.abs(rounded - Math.round(rounded)) < 0.05) {
+        label = String(Math.round(rounded));
+      } else {
+        label = rounded.toFixed(1);
+      }
+    }
+    return includeUnits ? `${label} yrs` : label;
+  }
+
+  function formatShareTwoPlus(positionKey) {
+    const players = SYOP_POSITION_PLAYERS.get(positionKey) || [];
+    if (players.length === 0) return '0';
+    const twoPlus = players.filter((player) => player.syopValue >= 2).length;
+    return Math.round((twoPlus / players.length) * 100);
+  }
+
+  function computeBeeswarm(points, xScale, centerY, radius, limit) {
+    const placed = [];
+    const sorted = points.slice().sort((a, b) => a.xValue - b.xValue || a.player.id.localeCompare(b.player.id));
+    const separation = radius * 1.9;
+    sorted.forEach((item, index) => {
+      const x = xScale(item.xValue);
+      let y = centerY;
+      let attempt = 0;
+      let direction = index % 2 === 0 ? 1 : -1;
+      while (attempt < 120) {
+        let collision = false;
+        for (let i = 0; i < placed.length; i += 1) {
+          const other = placed[i];
+          const dx = other.x - x;
+          const dy = other.y - y;
+          if ((dx * dx) + (dy * dy) < (radius * 2.05) ** 2) {
+            collision = true;
+            break;
+          }
+        }
+        if (!collision) break;
+        attempt += 1;
+        const offset = separation * attempt;
+        y = centerY + direction * offset;
+        direction *= -1;
+      }
+      y = Math.max(centerY - limit, Math.min(centerY + limit, y));
+      placed.push({ x, y, player: item.player });
+    });
+    return placed;
+  }
+
+  function jitterForId(id) {
+    let hash = 0;
+    for (let i = 0; i < id.length; i += 1) {
+      hash = (hash << 5) - hash + id.charCodeAt(i);
+      hash |= 0; // force 32-bit
+    }
+    return ((Math.sin(hash) + 1) / 2) * 0.4 - 0.2;
+  }
+
+  function attachDotInteractions({ dot, tooltip, wrapper, player }) {
+    const show = () => {
+      setActiveDot(wrapper, dot);
+      positionTooltip(wrapper, tooltip, dot, player);
+    };
+    const hide = () => {
+      clearActiveDot(wrapper, dot);
+      tooltip.setAttribute('hidden', '');
+    };
+
+    dot.addEventListener('mouseenter', show);
+    dot.addEventListener('focus', show);
+    dot.addEventListener('mouseleave', hide);
+    dot.addEventListener('blur', hide);
+    dot.addEventListener('touchstart', (event) => {
+      event.preventDefault();
+      show();
+    }, { passive: false });
+  }
+
+  function setActiveDot(wrapper, dot) {
+    const activeId = wrapper.dataset.activeDot;
+    if (activeId && activeId !== dot.dataset.playerId) {
+      const previous = wrapper.querySelector(`.syop-violin-dot[data-player-id="${activeId}"]`);
+      if (previous) {
+        previous.classList.remove('active');
+      }
+    }
+    wrapper.dataset.activeDot = dot.dataset.playerId || '';
+    dot.classList.add('active');
+  }
+
+  function clearActiveDot(wrapper, dot) {
+    if (!dot) return;
+    if (wrapper.dataset.activeDot === (dot.dataset.playerId || '')) {
+      wrapper.dataset.activeDot = '';
+    }
+    dot.classList.remove('active');
+  }
+
+  function positionTooltip(wrapper, tooltip, dot, player) {
+    tooltip.innerHTML = '';
+    tooltip.appendChild(createEl('span', { class: 'tooltip-name' }, player.name));
+    const metaText = `${player.displayYears} SYOP years · ${player.bucketCount} players (${player.bucketShare.toFixed(1)}%)`;
+    tooltip.appendChild(createEl('span', { class: 'tooltip-meta' }, metaText));
+    tooltip.removeAttribute('hidden');
+
+    const wrapperRect = wrapper.getBoundingClientRect();
+    const dotRect = dot.getBoundingClientRect();
+    const left = dotRect.left + dotRect.width / 2 - wrapperRect.left;
+    const top = dotRect.top - wrapperRect.top - 8;
+    tooltip.style.left = `${left}px`;
+    tooltip.style.top = `${top}px`;
   }
 
   function renderGauges() {
