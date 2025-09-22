@@ -58,6 +58,20 @@
     { SYOP: '12+', 'QB %': 20.0, 'RB %': 0.4, 'WR %': 2.2, 'TE %': 3.85 }
   ];
 
+  const POSITION_CONFIG = [
+    { key: 'QB', percentKey: 'QB %', label: 'Quarterbacks', color: colors.qb },
+    { key: 'RB', percentKey: 'RB %', label: 'Running Backs', color: colors.rb },
+    { key: 'WR', percentKey: 'WR %', label: 'Wide Receivers', color: colors.wr },
+    { key: 'TE', percentKey: 'TE %', label: 'Tight Ends', color: colors.te }
+  ];
+
+  const POSITION_TOTALS = {
+    QB: 52,
+    RB: 96,
+    WR: 107,
+    TE: 42
+  };
+
   const GAUGES = [
     { key: 'QB', value: 7.22, color: colors.qb },
     { key: 'RB', value: 3.39, color: colors.wr },
@@ -106,7 +120,130 @@
     { key: 'TE %', label: 'TE %', color: colors.te }
   ];
 
+  const syopChartState = {
+    activePosition: POSITION_CONFIG[0]?.key || null,
+    showTable: false
+  };
+
+  const { distributionByPosition: SYOP_DISTRIBUTION, summaryByPosition: SYOP_POSITION_SUMMARY } = buildSyopSummary();
+
   let resizeTimer = null;
+
+  function buildSyopSummary() {
+    const distributionByPosition = {};
+    const summaryByPosition = {};
+
+    POSITION_CONFIG.forEach((config) => {
+      const totalPlayers = POSITION_TOTALS[config.key] || 0;
+      const allocation = allocateBucketCounts(config.percentKey, totalPlayers);
+      const valueSamples = [];
+
+      allocation.forEach(({ bucket, count }) => {
+        const numericValue = bucketToNumeric(bucket);
+        for (let i = 0; i < count; i += 1) {
+          valueSamples.push(numericValue);
+        }
+      });
+
+      valueSamples.sort((a, b) => a - b);
+      const { median, q1, q3 } = computeQuantiles(valueSamples);
+      const iqr = q3 - q1;
+      const lowerFence = q1 - 1.5 * iqr;
+      const upperFence = q3 + 1.5 * iqr;
+      const shareTwoPlus = valueSamples.filter((value) => value >= 2).length / (valueSamples.length || 1);
+      const shareThreePlus = valueSamples.filter((value) => value >= 3).length / (valueSamples.length || 1);
+      const outlierCount = valueSamples.filter((value) => value < lowerFence || value > upperFence).length;
+
+      distributionByPosition[config.key] = SYOP_DATA.map((row) => ({
+        bucket: row.SYOP,
+        percentage: row[config.percentKey] || 0
+      }));
+
+      summaryByPosition[config.key] = {
+        total: totalPlayers,
+        median,
+        q1,
+        q3,
+        iqr,
+        shareTwoPlus,
+        shareThreePlus,
+        min: valueSamples[0] || 0,
+        max: valueSamples[valueSamples.length - 1] || 0,
+        outliers: outlierCount
+      };
+    });
+
+    return { distributionByPosition, summaryByPosition };
+  }
+
+  function allocateBucketCounts(percentKey, totalPlayers) {
+    const rows = SYOP_DATA.map((row) => ({
+      bucket: row.SYOP,
+      raw: (row[percentKey] || 0) * totalPlayers / 100
+    }));
+
+    const rounded = rows.map((entry) => Math.round(entry.raw));
+    let diff = totalPlayers - rounded.reduce((sum, value) => sum + value, 0);
+
+    if (diff !== 0) {
+      const adjustments = rows
+        .map((entry, index) => ({ index, fraction: entry.raw - Math.round(entry.raw) }))
+        .sort((a, b) => (diff > 0 ? b.fraction - a.fraction : a.fraction - b.fraction));
+
+      for (let i = 0; i < Math.abs(diff); i += 1) {
+        const target = adjustments[i % adjustments.length]?.index ?? 0;
+        rounded[target] += diff > 0 ? 1 : -1;
+      }
+    }
+
+    return rows.map((row, index) => ({
+      bucket: row.bucket,
+      count: Math.max(0, rounded[index])
+    }));
+  }
+
+  function bucketToNumeric(bucket) {
+    if (typeof bucket !== 'string') return Number(bucket) || 0;
+    if (bucket.includes('+')) {
+      const base = parseFloat(bucket.replace('+', ''));
+      return Number.isNaN(base) ? 0 : base + 0.5;
+    }
+    const value = parseFloat(bucket);
+    return Number.isNaN(value) ? 0 : value;
+  }
+
+  function formatSyopValue(value) {
+    if (value == null || Number.isNaN(value)) return '—';
+    if (value >= 12.25) return '12+';
+    const rounded = Math.round(value * 10) / 10;
+    if (Math.abs(rounded - Math.round(rounded)) < 1e-6) {
+      return String(Math.round(rounded));
+    }
+    return rounded.toFixed(1);
+  }
+
+  function computeQuantiles(values) {
+    if (!values.length) {
+      return { median: 0, q1: 0, q3: 0 };
+    }
+    const sorted = values.slice().sort((a, b) => a - b);
+    const median = quantile(sorted, 0.5);
+    const q1 = quantile(sorted, 0.25);
+    const q3 = quantile(sorted, 0.75);
+    return { median, q1, q3 };
+  }
+
+  function quantile(values, p) {
+    if (values.length === 0) return 0;
+    const pos = (values.length - 1) * p;
+    const lower = Math.floor(pos);
+    const upper = Math.ceil(pos);
+    if (lower === upper) {
+      return values[lower];
+    }
+    const weight = pos - lower;
+    return values[lower] * (1 - weight) + values[upper] * weight;
+  }
 
   function createEl(tag, attrs, ...children) {
     const el = document.createElement(tag);
@@ -411,52 +548,293 @@
     if (!container) return;
     container.innerHTML = '';
 
-    const scroll = createEl('div', { class: 'syop-heatmap-scroll' });
-    const grid = createEl('div', { class: 'syop-heatmap' });
+    const controls = createEl('div', { class: 'syop-bar-controls' });
+    controls.appendChild(createEl('span', { class: 'syop-filter-label' }, 'Positions'));
 
-    const headerRow = createEl('div', { class: 'syop-heatmap-row syop-heatmap-header' },
-      createEl('div', { class: 'syop-heatmap-cell bucket-cell' }, 'SYOP')
-    );
-    SERIES_CONFIG.forEach((series) => {
-      headerRow.appendChild(createEl('div', {
-        class: 'syop-heatmap-cell position-header',
-        style: { '--header-accent': series.color }
-      }, series.label.replace('%', '').trim()));
-    });
-    grid.appendChild(headerRow);
+    if (!syopChartState.activePosition && POSITION_CONFIG.length) {
+      syopChartState.activePosition = POSITION_CONFIG[0].key;
+    }
 
-    const maxValue = Math.max(...SYOP_DATA.flatMap((row) => SERIES_CONFIG.map((series) => row[series.key] || 0)));
+    const legend = createEl('div', { class: 'syop-position-legend', role: 'group', 'aria-label': 'SYOP position filter' });
+    POSITION_CONFIG.forEach((config) => {
+      const isActive = syopChartState.activePosition === config.key;
+      const chip = createEl('button', {
+        type: 'button',
+        class: `syop-legend-chip${isActive ? ' active' : ''}`,
+        style: { '--chip-accent': config.color },
+        'aria-pressed': String(isActive)
+      },
+      createEl('span', { class: 'chip-label' }, config.key));
 
-    SYOP_DATA.forEach((row) => {
-      const rowEl = createEl('div', { class: 'syop-heatmap-row' });
-      rowEl.appendChild(createEl('div', { class: 'syop-heatmap-cell bucket-cell' }, row.SYOP));
-
-      SERIES_CONFIG.forEach((series) => {
-        const value = row[series.key] || 0;
-        const intensity = maxValue > 0 ? value / maxValue : 0;
-        const width = Math.max(12, Math.min(100, intensity * 100));
-        const fill = hexToRgba(series.color, 0.35 + 0.55 * intensity);
-        const bar = createEl('span', {
-          class: 'syop-heatmap-bar',
-          style: {
-            width: `${width}%`,
-            background: fill
-          }
-        });
-        const cell = createEl('div', {
-          class: 'syop-heatmap-cell value-cell',
-          style: { '--accent-color': series.color }
-        },
-        bar,
-        createEl('span', { class: 'syop-heatmap-value' }, `${value.toFixed(1)}%`));
-        rowEl.appendChild(cell);
+      chip.addEventListener('click', () => {
+        if (syopChartState.activePosition === config.key) return;
+        syopChartState.activePosition = config.key;
+        renderBarChart();
       });
+      legend.appendChild(chip);
+    });
+    controls.appendChild(legend);
 
-      grid.appendChild(rowEl);
+    const viewToggle = createEl('button', {
+      type: 'button',
+      class: 'syop-view-toggle',
+      'aria-pressed': String(syopChartState.showTable),
+      'aria-controls': 'syop-distribution-view'
+    }, syopChartState.showTable ? 'View chart' : 'View as table');
+    viewToggle.addEventListener('click', () => {
+      syopChartState.showTable = !syopChartState.showTable;
+      renderBarChart();
+    });
+    controls.appendChild(viewToggle);
+
+    container.appendChild(controls);
+
+    const viewWrapper = createEl('div', { class: 'syop-bar-wrapper', id: 'syop-distribution-view' });
+    container.appendChild(viewWrapper);
+
+    const tooltip = createEl('div', { class: 'syop-bar-tooltip', role: 'tooltip', id: 'syop-bar-tooltip' });
+    container.appendChild(tooltip);
+
+    if (syopChartState.showTable) {
+      renderSyopTable(viewWrapper);
+      tooltip.classList.add('hidden');
+      return;
+    }
+
+    tooltip.classList.remove('hidden');
+    const activeConfig = POSITION_CONFIG.find((config) => config.key === syopChartState.activePosition)
+      || POSITION_CONFIG[0];
+
+    if (!activeConfig) {
+      viewWrapper.appendChild(createEl('p', { class: 'syop-violin-empty' }, 'No positions available.'));
+      return;
+    }
+
+    const metrics = SYOP_POSITION_SUMMARY[activeConfig.key];
+    const distribution = SYOP_DISTRIBUTION[activeConfig.key] || [];
+    const panel = createEl('section', { class: 'syop-violin-panel' });
+
+    const header = createEl('header', { class: 'syop-violin-header' },
+      createEl('div', { class: 'syop-violin-title-block' },
+        createEl('h4', { class: 'syop-violin-title' }, activeConfig.label),
+        createEl('div', { class: 'syop-violin-meta' },
+          createEl('span', null, `${metrics?.total ?? 0} players`),
+          createEl('span', null, `Median ${formatSyopValue(metrics?.median)} yrs`)
+        )
+      )
+    );
+
+    panel.appendChild(header);
+
+    const plot = createEl('div', { class: 'syop-bar-plot' });
+    panel.appendChild(plot);
+    viewWrapper.appendChild(panel);
+
+    drawSyopBarChart(plot, activeConfig, distribution, tooltip, container);
+  }
+
+  function drawSyopBarChart(plotContainer, config, distribution, tooltip, rootContainer) {
+    const containerWidth = plotContainer.clientWidth || plotContainer.parentElement?.clientWidth || 320;
+    const isCompact = window.innerWidth < 720 || containerWidth < 360;
+    const width = Math.max(280, containerWidth);
+    const height = isCompact ? 240 : 300;
+    const margin = isCompact
+      ? { top: 20, right: 16, bottom: 64, left: 44 }
+      : { top: 26, right: 20, bottom: 74, left: 48 };
+
+    const chartWidth = width - margin.left - margin.right;
+    const chartHeight = height - margin.top - margin.bottom;
+
+    const values = distribution.map((entry) => entry.percentage || 0);
+    const maxValue = Math.max(...values, 0);
+    const yMax = maxValue === 0 ? 5 : Math.ceil(maxValue / 5) * 5;
+    const tickStep = yMax > 40 ? 10 : yMax > 20 ? 5 : yMax > 10 ? 2 : 1;
+
+    const scaleY = (value) => {
+      if (yMax === 0) return margin.top + chartHeight;
+      const clamped = Math.max(0, value);
+      return margin.top + chartHeight - (clamped / yMax) * chartHeight;
+    };
+
+    plotContainer.innerHTML = '';
+    const svg = createSVG('svg', {
+      viewBox: `0 0 ${width} ${height}`,
+      class: 'syop-bar-svg'
     });
 
-    scroll.appendChild(grid);
-    container.appendChild(scroll);
+    svg.appendChild(createSVG('rect', {
+      x: margin.left,
+      y: margin.top,
+      width: chartWidth,
+      height: chartHeight,
+      class: 'syop-bar-area'
+    }));
+
+    const axisGroup = createSVG('g');
+
+    for (let tick = 0; tick <= yMax; tick += tickStep) {
+      const y = scaleY(tick);
+      axisGroup.appendChild(createSVG('line', {
+        x1: margin.left,
+        x2: margin.left + chartWidth,
+        y1: y,
+        y2: y,
+        class: 'syop-bar-grid'
+      }));
+      axisGroup.appendChild(createSVG('text', {
+        x: margin.left - 8,
+        y: y + 4,
+        class: 'syop-bar-tick-label'
+      }, document.createTextNode(`${tick}%`)));
+    }
+
+    axisGroup.appendChild(createSVG('line', {
+      x1: margin.left,
+      x2: margin.left,
+      y1: margin.top,
+      y2: margin.top + chartHeight,
+      class: 'syop-bar-axis'
+    }));
+
+    axisGroup.appendChild(createSVG('line', {
+      x1: margin.left,
+      x2: margin.left + chartWidth,
+      y1: margin.top + chartHeight,
+      y2: margin.top + chartHeight,
+      class: 'syop-bar-axis'
+    }));
+
+    const axisTitleY = createSVG('text', {
+      x: margin.left - 32,
+      y: margin.top + chartHeight / 2,
+      class: 'syop-bar-axis-title syop-bar-axis-title-y',
+      transform: `rotate(-90 ${margin.left - 32} ${margin.top + chartHeight / 2})`
+    }, document.createTextNode('% of position'));
+
+    axisGroup.appendChild(axisTitleY);
+
+    const axisTitleX = createSVG('text', {
+      x: margin.left + chartWidth / 2,
+      y: margin.top + chartHeight + 46,
+      class: 'syop-bar-axis-title syop-bar-axis-title-x'
+    }, document.createTextNode('SYOP'));
+
+    axisGroup.appendChild(axisTitleX);
+
+    svg.appendChild(axisGroup);
+
+    const bandWidth = chartWidth / Math.max(distribution.length, 1);
+    const barWidth = Math.max(10, bandWidth * 0.64);
+
+    distribution.forEach((entry, index) => {
+      const value = entry.percentage || 0;
+      const barHeight = Math.max(0, margin.top + chartHeight - scaleY(value));
+      const x = margin.left + index * bandWidth + (bandWidth - barWidth) / 2;
+      const y = scaleY(value);
+      const rect = createSVG('rect', {
+        x,
+        y,
+        width: barWidth,
+        height: barHeight,
+        rx: 6,
+        class: 'syop-bar-rect',
+        style: {
+          '--bar-fill': hexToRgba(config.color, 0.38),
+          '--bar-stroke': hexToRgba(config.color, 0.82)
+        },
+        tabindex: '0',
+        role: 'button',
+        'aria-label': `${config.key} ${Math.round(value * 10) / 10}%`
+      });
+      attachBarInteractions(rect, config, value, tooltip, rootContainer);
+      svg.appendChild(rect);
+
+      const labelX = margin.left + index * bandWidth + bandWidth / 2;
+      svg.appendChild(createSVG('text', {
+        x: labelX,
+        y: margin.top + chartHeight + 18,
+        class: 'syop-bar-x-label'
+      }, document.createTextNode(entry.bucket)));
+    });
+
+    plotContainer.appendChild(svg);
+  }
+
+  function attachBarInteractions(element, config, percentage, tooltip, rootContainer) {
+    if (!tooltip) return;
+    const color = config.color;
+    const formattedPercent = `${Math.round(percentage * 10) / 10}%`;
+
+    const hideTooltip = () => {
+      element.classList.remove('active');
+      tooltip.classList.remove('visible');
+    };
+
+    const showTooltip = () => {
+      element.classList.add('active');
+      tooltip.innerHTML = '';
+      tooltip.style.setProperty('--tooltip-accent', color);
+      tooltip.appendChild(createEl('div', { class: 'tooltip-name' }, config.key));
+      tooltip.appendChild(createEl('div', { class: 'tooltip-meta' }, formattedPercent));
+
+      const rootRect = rootContainer.getBoundingClientRect();
+      const barRect = element.getBoundingClientRect();
+      const containerWidth = rootRect.width;
+      let left = barRect.left - rootRect.left + barRect.width / 2;
+      left = Math.max(20, Math.min(containerWidth - 20, left));
+      const top = barRect.top - rootRect.top - 8;
+      tooltip.style.left = `${left}px`;
+      tooltip.style.top = `${top}px`;
+      tooltip.classList.add('visible');
+    };
+
+    element.addEventListener('mouseenter', showTooltip);
+    element.addEventListener('focus', showTooltip);
+    element.addEventListener('mouseleave', hideTooltip);
+    element.addEventListener('blur', hideTooltip);
+    element.addEventListener('click', (event) => {
+      event.preventDefault();
+      showTooltip();
+    });
+  }
+  function renderSyopTable(wrapper) {
+    wrapper.innerHTML = '';
+    const tableWrapper = createEl('div', { class: 'syop-table-wrapper' });
+    const table = createEl('table', { class: 'syop-table' });
+    table.appendChild(createEl('caption', null, 'SYOP distribution summary by position'));
+
+    const thead = createEl('thead', null,
+      createEl('tr', null,
+        createEl('th', null, 'Position'),
+        createEl('th', null, 'Players'),
+        createEl('th', null, 'Median SYOP'),
+        createEl('th', null, 'IQR (25%–75%)'),
+        createEl('th', null, '≥2 SYOP'),
+        createEl('th', null, '≥3 SYOP'),
+        createEl('th', null, 'Max'),
+        createEl('th', null, 'Outliers')
+      )
+    );
+    table.appendChild(thead);
+
+    const tbody = createEl('tbody');
+    POSITION_CONFIG.forEach((config) => {
+      const metrics = SYOP_POSITION_SUMMARY[config.key];
+      tbody.appendChild(createEl('tr', null,
+        createEl('th', { scope: 'row' }, `${config.key} · ${config.label}`),
+        createEl('td', null, metrics ? String(metrics.total) : '0'),
+        createEl('td', null, metrics ? formatSyopValue(metrics.median) : '—'),
+        createEl('td', null, metrics ? `${formatSyopValue(metrics.q1)} – ${formatSyopValue(metrics.q3)}` : '—'),
+        createEl('td', null, metrics ? `${Math.round((metrics.shareTwoPlus || 0) * 100)}%` : '—'),
+        createEl('td', null, metrics ? `${Math.round((metrics.shareThreePlus || 0) * 100)}%` : '—'),
+        createEl('td', null, metrics ? formatSyopValue(metrics.max) : '—'),
+        createEl('td', null, metrics ? String(metrics.outliers || 0) : '0')
+      ));
+    });
+
+    table.appendChild(tbody);
+    tableWrapper.appendChild(table);
+    wrapper.appendChild(tableWrapper);
   }
 
   function renderGauges() {
