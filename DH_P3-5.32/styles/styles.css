@@ -400,7 +400,54 @@
             }
 
             #primary-header-row {
-                grid-template-columns: var(--header-icon-size) max-content minmax(120px, var(--header-field-max-width)) minmax(var(--header-switcher-width), 1fr);
+                display: contents;
+            }
+
+            #secondary-header-row,
+            #filters-row {
+                display: contents;
+            }
+
+            #primary-header-row .menu-container {
+                order: 1;
+            }
+
+            #primary-header-row .header-quick-links {
+                order: 2;
+            }
+
+            #primary-header-row .username-area {
+                order: 3;
+                width: min(var(--header-field-max-width), 100%);
+                flex: 0 1 var(--header-field-max-width);
+            }
+
+            #primary-header-row .primary-switcher {
+                order: 4;
+                flex: 0 0 auto;
+            }
+
+            #contextual-controls .analyzer-button-slot,
+            #contextual-controls .research-button-slot {
+                display: none;
+            }
+
+            #contextual-controls .custom-select-wrapper {
+                order: 5;
+            }
+
+            #contextual-controls .secondary-switcher {
+                order: 6;
+            }
+
+            #contextual-controls .filters-container {
+                order: 7;
+                flex: 1 1 360px;
+                margin-left: 0;
+            }
+
+            #contextual-controls .filters-container .compare-controls {
+                margin-left: auto;
             }
 
             .header-quick-links .analyzer-button,
