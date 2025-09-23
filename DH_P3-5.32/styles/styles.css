@@ -1655,7 +1655,47 @@
             }
         }
 
-    
+        @media (min-width: 1024px) {
+            body[data-page="rosters"] .app-header {
+                justify-content: center;
+                align-items: center;
+                column-gap: 0.75rem;
+                row-gap: 0.5rem;
+            }
+
+            body[data-page="rosters"] #primary-header-row {
+                flex: 0 0 100%;
+                margin-inline: auto;
+                justify-content: center;
+                justify-items: center;
+            }
+
+            body[data-page="rosters"] #secondary-header-row,
+            body[data-page="rosters"] #filters-row {
+                display: contents;
+            }
+
+            body[data-page="rosters"] #analyzer-button-slot:empty,
+            body[data-page="rosters"] #research-button-slot:empty {
+                display: none;
+            }
+
+            body[data-page="rosters"] .app-header > .custom-select-wrapper {
+                order: 20;
+            }
+
+            body[data-page="rosters"] .app-header > .secondary-switcher {
+                order: 30;
+            }
+
+            body[data-page="rosters"] .app-header > .filters-container {
+                order: 40;
+                flex: 1 1 420px;
+                min-width: 260px;
+            }
+        }
+
+
 
 @media (max-width: 540px) {
   /* ⬇︎ 📱 OWNERSHIP PAGE: MOBILE CORRECTIONS (v4 — rows vs header separated) 📱 ⬇︎ */
