@@ -17,7 +17,9 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
         const rosterContainer = document.getElementById('rosterContainer');
         const rosterGrid = document.getElementById('rosterGrid');
         const compareButton = document.getElementById('compareButton');
-        const clearCompareButton = document.getElementById('clearCompareButton');
+        const compareSearchToggle = document.getElementById('compareSearchToggle');
+        const compareSearchPopover = document.getElementById('compareSearchPopover');
+        const compareSearchInput = document.getElementById('compareSearchInput');
         const positionalViewBtn = document.getElementById('positionalViewBtn');
         const depthChartViewBtn = document.getElementById('depthChartViewBtn');
         const viewControls = document.getElementById('view-controls');
@@ -190,6 +192,9 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
 
         // --- State ---
         let state = { userId: null, leagues: [], players: {}, oneQbData: {}, sflxData: {}, currentLeagueId: null, isSuperflex: false, cache: {}, teamsToCompare: new Set(), isCompareMode: false, currentRosterView: 'positional', activePositions: new Set(), tradeBlock: {}, isTradeCollapsed: false, weeklyStats: {}, playerSeasonStats: {}, playerSeasonRanks: {}, playerWeeklyStats: {}, statsSheetsLoaded: false, seasonRankCache: null, isGameLogModalOpenFromComparison: false };
+        let compareSearchTerm = '';
+        let compareSearchDebounceHandle = null;
+        let isCompareSearchOpen = false;
         const assignedLeagueColors = new Map();
         let nextColorIndex = 0;
         const assignedRyColors = new Map();
@@ -280,7 +285,6 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
             });
 
             compareButton?.addEventListener('click', handleCompareClick);
-            clearCompareButton?.addEventListener('click', () => handleClearCompare(true));
             positionalViewBtn?.addEventListener('click', () => setRosterView('positional'));
             depthChartViewBtn?.addEventListener('click', () => setRosterView('depth'));
             positionalFiltersContainer?.addEventListener('click', handlePositionFilter);
@@ -311,7 +315,23 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
                 });
             }
         }
-        
+
+        if (compareSearchToggle && compareSearchPopover && compareSearchInput) {
+            compareSearchToggle.addEventListener('click', (event) => {
+                event.preventDefault();
+                if (isCompareSearchOpen) {
+                    closeCompareSearchPopover();
+                } else {
+                    openCompareSearchPopover();
+                }
+            });
+
+            compareSearchInput.addEventListener('input', handleCompareSearchInput);
+            compareSearchInput.addEventListener('search', handleCompareSearchInput);
+            applyCompareSearchFilter();
+            syncCompareSearchToggleState();
+        }
+
         // --- Initialization ---
         document.addEventListener('DOMContentLoaded', async () => {
             if (pageType === 'analyzer') return;
@@ -532,6 +552,89 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
             }
         }
 
+        function syncCompareSearchToggleState() {
+            if (!compareSearchToggle) return;
+            const hasQuery = compareSearchTerm.trim().length > 0;
+            compareSearchToggle.classList.toggle('active', isCompareSearchOpen || hasQuery);
+            compareSearchToggle.setAttribute('aria-expanded', String(isCompareSearchOpen));
+        }
+
+        function applyCompareSearchFilter() {
+            const columns = document.querySelectorAll('.roster-column[data-team-name]');
+            if (!columns.length) {
+                return;
+            }
+            const term = compareSearchTerm.trim().toLowerCase();
+            columns.forEach(column => {
+                const name = (column.dataset.teamName || '').toLowerCase();
+                const matches = !term || name.includes(term);
+                column.classList.toggle('compare-search-hidden', !matches);
+            });
+        }
+
+        function openCompareSearchPopover() {
+            if (!compareSearchPopover || !compareSearchToggle) return;
+            if (isCompareSearchOpen) return;
+            isCompareSearchOpen = true;
+            compareSearchPopover.classList.add('is-open');
+            compareSearchPopover.setAttribute('aria-hidden', 'false');
+            syncCompareSearchToggleState();
+            if (compareSearchInput) {
+                compareSearchInput.value = compareSearchTerm;
+                window.requestAnimationFrame(() => {
+                    compareSearchInput.focus({ preventScroll: false });
+                    compareSearchInput.select();
+                });
+            }
+            document.addEventListener('pointerdown', handleCompareSearchOutside, true);
+            document.addEventListener('keydown', handleCompareSearchKeydown, true);
+        }
+
+        function closeCompareSearchPopover(focusToggle = true) {
+            if (!compareSearchPopover || !compareSearchToggle) return;
+            if (!isCompareSearchOpen) {
+                syncCompareSearchToggleState();
+                return;
+            }
+            isCompareSearchOpen = false;
+            compareSearchPopover.classList.remove('is-open');
+            compareSearchPopover.setAttribute('aria-hidden', 'true');
+            syncCompareSearchToggleState();
+            document.removeEventListener('pointerdown', handleCompareSearchOutside, true);
+            document.removeEventListener('keydown', handleCompareSearchKeydown, true);
+            if (focusToggle) {
+                compareSearchToggle.focus({ preventScroll: false });
+            }
+        }
+
+        function handleCompareSearchOutside(event) {
+            if (!isCompareSearchOpen) return;
+            if (compareSearchPopover?.contains(event.target) || compareSearchToggle?.contains(event.target)) {
+                return;
+            }
+            closeCompareSearchPopover(false);
+        }
+
+        function handleCompareSearchKeydown(event) {
+            if (event.key === 'Escape' && isCompareSearchOpen) {
+                event.preventDefault();
+                event.stopPropagation();
+                closeCompareSearchPopover();
+            }
+        }
+
+        function handleCompareSearchInput(event) {
+            const value = event?.target?.value ?? '';
+            compareSearchTerm = value;
+            if (compareSearchDebounceHandle) {
+                clearTimeout(compareSearchDebounceHandle);
+            }
+            compareSearchDebounceHandle = setTimeout(() => {
+                applyCompareSearchFilter();
+                syncCompareSearchToggleState();
+            }, 140);
+        }
+
         function handleCompareClick() {
             state.isCompareMode = !state.isCompareMode;
             rosterView.classList.toggle('is-trade-mode', state.isCompareMode);
@@ -584,13 +687,11 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
         }
 
         function updateCompareButtonState() {
-            if (!compareButton || !clearCompareButton) {
+            if (!compareButton) {
                 return;
             }
             const count = state.teamsToCompare.size;
             compareButton.disabled = count < 2;
-            clearCompareButton.classList.toggle('hidden', count === 0);
-            clearCompareButton.classList.toggle('active', count >= 2);
 
             if (count > 1) {
                 compareButton.classList.add('glow-on-select');
@@ -2612,6 +2713,8 @@ const SEASON_META_HEADERS = {
                 columnWrapper.appendChild(card);
                 rosterGrid.appendChild(columnWrapper);
             });
+
+            applyCompareSearchFilter();
         }
 
         function createDepthChartTeamCard(team) {
