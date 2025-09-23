@@ -1605,11 +1605,162 @@ const SEASON_META_HEADERS = {
         }
 
         // --- UI Rendering ---
+        function getPlayerPhysicalAttributes(playerId) {
+            const playerData = state.players?.[playerId];
+            const sanitizeNumber = (value) => {
+                if (typeof value === 'number' && Number.isFinite(value)) return value;
+                if (typeof value === 'string' && value.trim() !== '') {
+                    const parsed = Number.parseFloat(value.replace(/[^0-9.\-]/g, ''));
+                    return Number.isFinite(parsed) ? parsed : null;
+                }
+                return null;
+            };
+
+            const resolveAge = () => {
+                const directAge = sanitizeNumber(playerData?.age ?? playerData?.metadata?.age);
+                if (Number.isFinite(directAge)) {
+                    return Math.floor(directAge);
+                }
+
+                if (playerData?.birth_date) {
+                    const birth = new Date(playerData.birth_date);
+                    if (!Number.isNaN(birth.getTime())) {
+                        const today = new Date();
+                        let age = today.getFullYear() - birth.getFullYear();
+                        const hasHadBirthday =
+                            today.getMonth() > birth.getMonth() ||
+                            (today.getMonth() === birth.getMonth() && today.getDate() >= birth.getDate());
+                        if (!hasHadBirthday) age -= 1;
+                        return age;
+                    }
+                }
+                return null;
+            };
+
+            const parseHeightString = (value) => {
+                if (!value) return null;
+                const normalized = String(value).trim();
+                if (!normalized) return null;
+                const dashMatch = normalized.match(/^(\d{1,2})\s*-\s*(\d{1,2})$/);
+                if (dashMatch) {
+                    return { feet: Number.parseInt(dashMatch[1], 10), inches: Number.parseInt(dashMatch[2], 10) };
+                }
+                const quoteMatch = normalized.match(/^(\d{1,2})\s*'\s*(\d{1,2})?\s*"?$/);
+                if (quoteMatch) {
+                    return {
+                        feet: Number.parseInt(quoteMatch[1], 10),
+                        inches: quoteMatch[2] ? Number.parseInt(quoteMatch[2], 10) : 0
+                    };
+                }
+                return null;
+            };
+
+            const resolveHeight = () => {
+                if (!playerData) return null;
+                let result = parseHeightString(playerData.height);
+                if (!result) {
+                    const numericHeight = sanitizeNumber(playerData.height);
+                    if (Number.isFinite(numericHeight)) {
+                        const feet = Math.floor(numericHeight / 12);
+                        const inches = Math.round(numericHeight % 12);
+                        result = { feet, inches };
+                    }
+                }
+                if (!result && playerData?.metadata) {
+                    const metaHeight = parseHeightString(playerData.metadata.height);
+                    if (metaHeight) {
+                        result = metaHeight;
+                    } else {
+                        const metaNumeric = sanitizeNumber(playerData.metadata.height);
+                        if (Number.isFinite(metaNumeric)) {
+                            const feet = Math.floor(metaNumeric / 12);
+                            const inches = Math.round(metaNumeric % 12);
+                            result = { feet, inches };
+                        }
+                    }
+                    if (!result && playerData.metadata.height_inches) {
+                        const totalInches = sanitizeNumber(playerData.metadata.height_inches);
+                        if (Number.isFinite(totalInches)) {
+                            const feet = Math.floor(totalInches / 12);
+                            const inches = Math.round(totalInches % 12);
+                            result = { feet, inches };
+                        }
+                    }
+                }
+                if (!result && playerData.height_inches) {
+                    const totalInches = sanitizeNumber(playerData.height_inches);
+                    if (Number.isFinite(totalInches)) {
+                        const feet = Math.floor(totalInches / 12);
+                        const inches = Math.round(totalInches % 12);
+                        result = { feet, inches };
+                    }
+                }
+                if (!result && playerData.height_ft) {
+                    const feet = sanitizeNumber(playerData.height_ft);
+                    const inches = sanitizeNumber(playerData.height_in || playerData.height_inches);
+                    if (Number.isFinite(feet)) {
+                        result = { feet, inches: Number.isFinite(inches) ? inches : 0 };
+                    }
+                }
+                if (!result) return null;
+                const feet = Number.isFinite(result.feet) ? result.feet : null;
+                const inches = Number.isFinite(result.inches) ? result.inches : 0;
+                if (feet === null) return null;
+                const safeInches = Math.max(0, Math.round(inches));
+                return `${feet}'${safeInches}"`;
+            };
+
+            const resolveWeight = () => {
+                const rawWeight = sanitizeNumber(
+                    playerData?.weight ??
+                    playerData?.weight_lbs ??
+                    playerData?.metadata?.weight ??
+                    playerData?.metadata?.weight_lbs
+                );
+                if (Number.isFinite(rawWeight)) {
+                    return `${Math.round(rawWeight)} lbs`;
+                }
+                return null;
+            };
+
+            const age = resolveAge();
+            const height = resolveHeight();
+            const weight = resolveWeight();
+
+            return {
+                age: Number.isFinite(age) ? age : null,
+                height: height || null,
+                weight: weight || null
+            };
+        }
+
+        function buildPlayerPhysicalsMarkup(physicals) {
+            const items = [
+                { label: 'AGE', value: Number.isFinite(physicals.age) ? physicals.age : 'N/A' },
+                { label: 'HEIGHT', value: physicals.height || 'N/A' },
+                { label: 'WEIGHT', value: physicals.weight || 'N/A' }
+            ];
+            return items.map(item => (
+                `<div class="player-physical">` +
+                    `<span class="player-physical-label">${item.label}</span>` +
+                    `<span class="player-physical-value">${item.value}</span>` +
+                `</div>`
+            )).join('');
+        }
+
+        function renderModalPlayerPhysicals(playerId) {
+            const physicalsContainer = document.getElementById('modal-player-physicals');
+            if (!physicalsContainer) return;
+            const physicals = getPlayerPhysicalAttributes(playerId);
+            physicalsContainer.innerHTML = buildPlayerPhysicalsMarkup(physicals);
+        }
+
         async function handlePlayerNameClick(player) {
             const fullPlayer = state.players[player.id];
             const playerName = fullPlayer ? `${fullPlayer.first_name} ${fullPlayer.last_name}` : player.name;
 
             modalPlayerName.textContent = `${playerName}`;
+            renderModalPlayerPhysicals(player.id);
             document.getElementById('modal-summary-chips').innerHTML = ''; // Clear previous chips
             const existingHeaderContainer = document.querySelector('.modal-header-left-container');
             if(existingHeaderContainer) existingHeaderContainer.remove();
@@ -2160,6 +2311,12 @@ const SEASON_META_HEADERS = {
                 nameHeader.appendChild(nameButton);
                 nameHeader.appendChild(tagsRow);
                 headerContainer.appendChild(nameHeader);
+
+                const physicals = getPlayerPhysicalAttributes(player.id);
+                const physicalsRow = document.createElement('div');
+                physicalsRow.className = 'player-physicals player-physicals--compact';
+                physicalsRow.innerHTML = buildPlayerPhysicalsMarkup(physicals);
+                headerContainer.appendChild(physicalsRow);
 
                 playerNamesRow.appendChild(headerContainer);
             });

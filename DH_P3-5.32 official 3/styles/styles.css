@@ -3070,6 +3070,55 @@ body[data-page="rosters"] #secondary-header-row #analyzeLeagueButton.active {
       text-align: center;
       margin-bottom: 1rem;
     }
+
+    .player-physicals {
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+      gap: 1.25rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .modal-player-physicals {
+      margin-top: -0.25rem;
+    }
+
+    .player-physical {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.15rem;
+    }
+
+    .player-physical-label {
+      font-size: 0.55rem;
+      letter-spacing: 0.12rem;
+      color: rgba(255, 255, 255, 0.65);
+      text-transform: uppercase;
+    }
+
+    .player-physical-value {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #ffffff;
+      text-shadow: 0 0 6px rgba(0, 0, 0, 0.45);
+    }
+
+    .player-physicals--compact {
+      gap: 0.9rem;
+      margin-top: 0.35rem;
+      margin-bottom: 0.45rem;
+    }
+
+    .player-physicals--compact .player-physical-label {
+      font-size: 0.48rem;
+      letter-spacing: 0.1rem;
+      color: rgba(255, 255, 255, 0.55);
+    }
+
+    .player-physicals--compact .player-physical-value {
+      font-size: 0.78rem;
+    }
     
     #modal-summary-row {
       display: flex;
