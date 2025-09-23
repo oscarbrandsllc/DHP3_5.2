@@ -17,7 +17,9 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
         const rosterContainer = document.getElementById('rosterContainer');
         const rosterGrid = document.getElementById('rosterGrid');
         const compareButton = document.getElementById('compareButton');
-        const clearCompareButton = document.getElementById('clearCompareButton');
+        const compareSearchToggle  = document.getElementById('compareSearchToggle');
+        const compareSearchPopover = document.getElementById('compareSearchPopover');
+        const compareSearchInput   = document.getElementById('compareSearchInput');
         const positionalViewBtn = document.getElementById('positionalViewBtn');
         const depthChartViewBtn = document.getElementById('depthChartViewBtn');
         const viewControls = document.getElementById('view-controls');
@@ -280,7 +282,6 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
             });
 
             compareButton?.addEventListener('click', handleCompareClick);
-            clearCompareButton?.addEventListener('click', () => handleClearCompare(true));
             positionalViewBtn?.addEventListener('click', () => setRosterView('positional'));
             depthChartViewBtn?.addEventListener('click', () => setRosterView('depth'));
             positionalFiltersContainer?.addEventListener('click', handlePositionFilter);
@@ -584,13 +585,11 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
         }
 
         function updateCompareButtonState() {
-            if (!compareButton || !clearCompareButton) {
+            if (!compareButton) {
                 return;
             }
             const count = state.teamsToCompare.size;
             compareButton.disabled = count < 2;
-            clearCompareButton.classList.toggle('hidden', count === 0);
-            clearCompareButton.classList.toggle('active', count >= 2);
 
             if (count > 1) {
                 compareButton.classList.add('glow-on-select');
@@ -609,11 +608,75 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
                 compareButton.classList.remove('compare-show-all');
                 unlockCompareButtonSize();
             }
-            
+
             if (count < 2 && state.isCompareMode) {
                 handleCompareClick(); // Automatically exit compare mode
             }
         }
+
+        function openCompareSearch() {
+            if (!compareSearchPopover || !compareSearchToggle || !compareSearchInput) {
+                return;
+            }
+            compareSearchPopover.classList.remove('hidden');
+            compareSearchToggle.setAttribute('aria-expanded', 'true');
+            compareSearchInput.focus();
+        }
+
+        function closeCompareSearch() {
+            if (!compareSearchPopover || !compareSearchToggle || !compareSearchInput) {
+                return;
+            }
+            compareSearchPopover.classList.add('hidden');
+            compareSearchToggle.setAttribute('aria-expanded', 'false');
+            compareSearchInput.value = '';
+            filterTeamsByQuery('');
+        }
+
+        function filterTeamsByQuery(q) {
+            const query = (q || '').trim().toLowerCase();
+            const items = document.querySelectorAll('#rosterGrid [data-team-name]');
+            items.forEach(el => {
+                const name = (el.getAttribute('data-team-name') || '').toLowerCase();
+                el.classList.toggle('hidden', Boolean(query) && !name.includes(query));
+            });
+        }
+
+        let searchDebounce;
+
+        compareSearchToggle?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isOpen = compareSearchToggle.getAttribute('aria-expanded') === 'true';
+            if (isOpen) {
+                closeCompareSearch();
+            } else {
+                openCompareSearch();
+            }
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!compareSearchPopover || !compareSearchToggle) {
+                return;
+            }
+            if (compareSearchPopover.classList.contains('hidden')) {
+                return;
+            }
+            if (!compareSearchPopover.contains(e.target) && !compareSearchToggle.contains(e.target)) {
+                closeCompareSearch();
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeCompareSearch();
+            }
+        });
+
+        compareSearchInput?.addEventListener('input', (e) => {
+            const val = e.target.value;
+            clearTimeout(searchDebounce);
+            searchDebounce = setTimeout(() => filterTeamsByQuery(val), 120);
+        });
 
         function handleAssetClickForTrade(e) {
             if (!state.isCompareMode) return;
@@ -2586,32 +2649,36 @@ const SEASON_META_HEADERS = {
                 const columnWrapper = document.createElement('div');
                 columnWrapper.className = 'roster-column';
                 columnWrapper.dataset.teamName = team.teamName;
-                
+
                 const header = document.createElement('div');
                 header.className = 'team-header-item';
-                
+
                 const checkbox = document.createElement('div');
                 checkbox.className = 'team-compare-checkbox';
                 if (state.teamsToCompare.has(team.teamName)) {
                     checkbox.classList.add('selected');
                 }
                 checkbox.dataset.teamName = team.teamName;
-                
+
                 const teamNameSpan = document.createElement('span');
                 teamNameSpan.className = 'team-name';
                 teamNameSpan.textContent = team.teamName;
                 header.title = team.teamName;
-                
-                
+
+
                 header.appendChild(checkbox);
                 header.appendChild(teamNameSpan);
-                
+
                 const card = state.currentRosterView === 'positional' ? createPositionalTeamCard(team) : createDepthChartTeamCard(team);
-                
+
                 columnWrapper.appendChild(header);
                 columnWrapper.appendChild(card);
                 rosterGrid.appendChild(columnWrapper);
             });
+
+            if (compareSearchInput && compareSearchInput.value) {
+                filterTeamsByQuery(compareSearchInput.value);
+            }
         }
 
         function createDepthChartTeamCard(team) {
