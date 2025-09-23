@@ -116,13 +116,26 @@
         <div class="compare-controls">
             <!-- Hidden compare button kept only to satisfy JS state machine (do not show) -->
             <button class="control-button hidden" id="compareButton" aria-hidden="true" tabindex="-1" style="display:none;"></button>
-            <!-- Clear selections button -->
-            <button class="control-button-subtle hidden" id="clearCompareButton" aria-label="Clear selections">
-                <span class="clear-filters-stack">
-                    <i class="fa-regular fa-rectangle-xmark" aria-hidden="true"></i>
-                    <span class="sr-only">Clear compare selections</span>
-                </span>
+            <button id="compareSearchToggle"
+                    class="control-button-subtle compare-search-toggle"
+                    aria-haspopup="true"
+                    aria-expanded="false"
+                    aria-controls="compareSearchPopover">
+                <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                <span class="sr-only">Search teams</span>
             </button>
+
+            <div id="compareSearchPopover"
+                 class="compare-search-popover hidden"
+                 role="dialog"
+                 aria-modal="false">
+                <label for="compareSearchInput" class="sr-only">Search teams</label>
+                <input id="compareSearchInput"
+                       type="search"
+                       placeholder="Search teams…"
+                       autocomplete="off"
+                       inputmode="search" />
+            </div>
         </div>
 
     </div>
