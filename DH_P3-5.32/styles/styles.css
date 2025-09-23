@@ -1626,13 +1626,19 @@
                 display: contents;
             }
 
+            #primary-header-row,
+            #secondary-header-row,
+            #filters-row {
+                display: contents;
+            }
+
             .header-row {
                 width: auto;
                 border-top: none !important;
                 padding-top: 0 !important;
                 padding-bottom: 0 !important;
             }
-            
+
             #contextual-controls .header-row:has(#positional-filters) {
                 flex-basis: 100%;
                 justify-content: center;
@@ -1652,6 +1658,71 @@
             .username-area, .custom-select-wrapper {
                 flex-grow: 0;
                 max-width: 220px;
+            }
+
+            .app-header > .menu-container,
+            .app-header > .header-quick-links,
+            .app-header > .analyzer-button-slot,
+            .app-header > .research-button-slot,
+            .app-header > .username-area,
+            .app-header > .app-view-switcher.primary-switcher,
+            .app-header > .custom-select-wrapper,
+            .app-header > .view-switcher.secondary-switcher,
+            .app-header > .filters-container {
+                margin-block: 0;
+            }
+
+            .app-header > .menu-container { order: 1; }
+
+            .app-header > .header-quick-links,
+            .app-header > .analyzer-button-slot { order: 2; }
+
+            .app-header > .username-area { order: 3; }
+
+            .app-header > .app-view-switcher.primary-switcher { order: 4; }
+
+            .app-header > .custom-select-wrapper { order: 5; }
+
+            .app-header > .view-switcher.secondary-switcher { order: 6; }
+
+            .app-header > .research-button-slot { order: 7; }
+
+            .app-header > .filters-container {
+                order: 8;
+                flex: 1 1 260px;
+                min-width: 260px;
+            }
+
+            .app-header > .custom-select-wrapper,
+            .app-header > .view-switcher.secondary-switcher {
+                flex: 0 0 auto;
+                align-self: stretch;
+            }
+
+            .app-header > .menu-container,
+            .app-header > .analyzer-button-slot,
+            .app-header > .research-button-slot,
+            .app-header > .username-area,
+            .app-header > .app-view-switcher.primary-switcher {
+                align-self: stretch;
+            }
+
+            .app-header > .menu-container,
+            .app-header > .analyzer-button-slot,
+            .app-header > .research-button-slot,
+            .app-header > .view-switcher.secondary-switcher,
+            .app-header > .filters-container,
+            .app-header > .app-view-switcher.primary-switcher,
+            .app-header > .username-area {
+                height: var(--header-control-height);
+            }
+
+            .app-header > .filters-container {
+                align-items: center;
+            }
+
+            .research-button {
+                margin-top: 0;
             }
         }
 
