@@ -430,6 +430,49 @@
             #header-quick-links #analyzeLeagueButton:focus-visible .analyzer-icon {
                 color: var(--color-text-primary);
             }
+
+            body[data-page="rosters"] .app-header {
+                justify-content: center;
+            }
+
+            body[data-page="rosters"] #primary-header-row {
+                flex-basis: 100%;
+                margin-inline: auto;
+                justify-content: center;
+            }
+
+            body[data-page="rosters"] #primary-header-row > * {
+                justify-self: center;
+            }
+
+            body[data-page="rosters"] #secondary-header-row,
+            body[data-page="rosters"] #filters-row {
+                display: contents;
+            }
+
+            body[data-page="rosters"] #analyzer-button-slot,
+            body[data-page="rosters"] #research-button-slot {
+                display: none;
+            }
+
+            body[data-page="rosters"] .custom-select-wrapper {
+                order: 20;
+                flex: 0 0 auto;
+                max-width: 240px;
+            }
+
+            body[data-page="rosters"] .view-switcher.secondary-switcher {
+                order: 21;
+                flex: 0 0 auto;
+                width: min(var(--header-switcher-width), 100%);
+            }
+
+            body[data-page="rosters"] .filters-container {
+                order: 22;
+                flex: 1 1 360px;
+                justify-content: flex-start;
+                max-width: 100%;
+            }
         }
 
   /* · · Ensure hidden truly hides views regardless of ID display rules · · */
