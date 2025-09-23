@@ -400,12 +400,45 @@
             }
 
             #primary-header-row {
-                grid-template-columns: var(--header-icon-size) max-content minmax(120px, var(--header-field-max-width)) minmax(var(--header-switcher-width), 1fr);
+                grid-template-columns: var(--header-icon-size) max-content minmax(120px, var(--header-field-max-width)) max-content;
+                order: 1;
+                flex-basis: auto;
+                width: max-content;
+                justify-content: center;
+                margin-inline: auto;
             }
 
             .header-quick-links .analyzer-button,
             .header-quick-links .research-button {
                 gap: 0.2rem;
+            }
+
+            #secondary-header-row,
+            #filters-row {
+                display: contents;
+            }
+
+            #contextual-controls .analyzer-button-slot:empty,
+            #contextual-controls .research-button-slot:empty {
+                display: none;
+            }
+
+            #contextual-controls .analyzer-button-slot {
+                order: 2;
+            }
+
+            #contextual-controls .custom-select-wrapper {
+                order: 3;
+            }
+
+            #contextual-controls .secondary-switcher {
+                order: 4;
+            }
+
+            #contextual-controls .filters-container {
+                order: 5;
+                flex: 1 1 320px;
+                margin-left: auto;
             }
 
             #header-quick-links #analyzeLeagueButton,
