@@ -810,6 +810,19 @@
   .app-header.preview-active > .header-row:first-of-type {
     display: none;
   }
+
+  #filters-row {
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  #filters-row > .filters-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+  }
 }
 /* ⬇︎ ROSTER VIEW  ⬇︎ */
         #rosterContainer { 
