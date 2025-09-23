@@ -91,7 +91,14 @@
 </div>
 <div class="compare-controls">
 <button class="control-button" disabled="" id="compareButton">Preview</button>
-<button class="control-button-subtle hidden" id="clearCompareButton">Clear</button>
+<button class="control-button-subtle compare-search-toggle" id="compareSearchToggle" type="button" aria-label="Search teams" aria-haspopup="true" aria-expanded="false">
+    <span class="sr-only">Open compare search</span>
+    <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+</button>
+<div class="compare-search-popover hidden" id="compareSearchPopover" role="dialog" aria-label="Search teams">
+    <label class="sr-only" for="compareSearchInput">Search teams</label>
+    <input class="compare-search-input" id="compareSearchInput" type="search" inputmode="search" autocomplete="off" placeholder="Filter teams..." />
+</div>
 </div>
 </div>
 </div>
