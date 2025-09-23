@@ -1562,6 +1562,190 @@ const SEASON_META_HEADERS = {
             return ownedPicks.sort((a, b) => a.season.localeCompare(b.season) || a.round - b.round);
         }
 
+        function calculateAgeFromBirthDate(birthDateString) {
+            if (!birthDateString) return null;
+            const birthDate = new Date(birthDateString);
+            if (Number.isNaN(birthDate.getTime())) return null;
+            const today = new Date();
+            let age = today.getFullYear() - birthDate.getFullYear();
+            const monthDiff = today.getMonth() - birthDate.getMonth();
+            const dayDiff = today.getDate() - birthDate.getDate();
+            if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) {
+                age -= 1;
+            }
+            return age >= 0 ? age : null;
+        }
+
+        function parseHeightToInches(rawHeight) {
+            if (rawHeight === undefined || rawHeight === null || rawHeight === '') return null;
+
+            if (typeof rawHeight === 'number' && Number.isFinite(rawHeight)) {
+                return rawHeight > 10 ? rawHeight : rawHeight * 12;
+            }
+
+            const stringValue = String(rawHeight).trim();
+            if (!stringValue) return null;
+
+            const normalizedQuotes = stringValue
+                .replace(/[″”“]/g, '"')
+                .replace(/[’‘`]/g, "'")
+                .replace(/\s+/g, ' ');
+            const dashNormalized = normalizedQuotes.replace(/-/g, "'");
+
+            const footInchMatch = dashNormalized.match(/^(\d{1,2})\s*(?:'|ft|feet)?\s*(?:-| )?\s*(\d{1,2})\s*(?:"|in|inches)?$/i);
+            if (footInchMatch) {
+                const feet = Number(footInchMatch[1]);
+                const inches = Number(footInchMatch[2]) || 0;
+                if (Number.isFinite(feet) && Number.isFinite(inches)) {
+                    return feet * 12 + inches;
+                }
+            }
+
+            if (dashNormalized.includes("'")) {
+                const parts = dashNormalized.split("'");
+                const feet = Number(parts[0]);
+                const inches = Number(parts[1]?.replace(/[^0-9]/g, '') || 0);
+                if (Number.isFinite(feet)) {
+                    return feet * 12 + (Number.isFinite(inches) ? inches : 0);
+                }
+            }
+
+            const digitsOnly = dashNormalized.replace(/[^0-9]/g, '');
+            if (digitsOnly) {
+                const numeric = Number(digitsOnly);
+                if (Number.isFinite(numeric)) {
+                    if (numeric >= 54) {
+                        return numeric;
+                    }
+                    if (numeric <= 8) {
+                        return numeric * 12;
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        function inchesToFeetAndInches(totalInches) {
+            if (!Number.isFinite(totalInches)) return null;
+            const rounded = Math.round(totalInches);
+            const feet = Math.floor(rounded / 12);
+            const inches = Math.max(0, rounded - feet * 12);
+            if (feet <= 0 && inches <= 0) return null;
+            return `${feet}'${inches}"`;
+        }
+
+        function formatPlayerHeight(player) {
+            const heightInches = parseHeightToInches(player.height_inches || player.height_in || player.height);
+            if (heightInches !== null) {
+                const formatted = inchesToFeetAndInches(heightInches);
+                if (formatted) return formatted;
+            }
+
+            if (player.height) {
+                let sanitized = String(player.height)
+                    .trim()
+                    .replace(/[″”“]/g, '"')
+                    .replace(/[’‘`]/g, "'");
+
+                if (!sanitized) return '—';
+
+                const digits = sanitized.replace(/[^0-9]/g, '');
+                if (!digits) return '—';
+
+                if (sanitized.includes("'") && !sanitized.includes('"')) {
+                    sanitized = `${sanitized}"`;
+                }
+
+                return sanitized;
+            }
+
+            return '—';
+        }
+
+        function formatPlayerWeight(player) {
+            const rawWeight = player.weight || player.weight_lbs || player.weight_in_lbs;
+            if (rawWeight === undefined || rawWeight === null || rawWeight === '') return '—';
+            const stringValue = String(rawWeight).trim();
+            if (!stringValue) return '—';
+            const digits = stringValue.replace(/[^0-9]/g, '');
+            if (!digits) return '—';
+            const numeric = Number(stringValue.replace(/[^0-9.]/g, ''));
+            if (Number.isFinite(numeric) && numeric > 0) {
+                return `${Math.round(numeric)} lbs`;
+            }
+            return '—';
+        }
+
+        function formatPlayerAge(player) {
+            const rawAge = player.age;
+            if (rawAge !== undefined && rawAge !== null && rawAge !== '') {
+                const numericAge = Number(rawAge);
+                if (Number.isFinite(numericAge)) {
+                    return String(Math.floor(numericAge));
+                }
+                if (typeof rawAge === 'string') {
+                    const trimmed = rawAge.trim();
+                    if (trimmed) {
+                        const digits = trimmed.replace(/[^0-9]/g, '');
+                        if (digits) {
+                            return String(Number(digits));
+                        }
+                    }
+                }
+            }
+
+            const computedAge = calculateAgeFromBirthDate(player.birth_date || player.birthdate);
+            if (computedAge !== null) {
+                return String(computedAge);
+            }
+
+            return '—';
+        }
+
+        function getPlayerVitals(playerId) {
+            const player = state.players?.[playerId];
+            if (!player) {
+                return { age: '—', height: '—', weight: '—' };
+            }
+
+            return {
+                age: formatPlayerAge(player),
+                height: formatPlayerHeight(player),
+                weight: formatPlayerWeight(player)
+            };
+        }
+
+        function createPlayerVitalsElement(vitals, variant = 'modal') {
+            const container = document.createElement('div');
+            container.className = `player-vitals player-vitals--${variant}`;
+
+            const items = [
+                { label: 'Age', value: vitals.age },
+                { label: 'Height', value: vitals.height },
+                { label: 'Weight', value: vitals.weight }
+            ];
+
+            items.forEach(item => {
+                const itemEl = document.createElement('div');
+                itemEl.className = 'player-vitals__item';
+
+                const labelEl = document.createElement('span');
+                labelEl.className = 'player-vitals__label';
+                labelEl.textContent = item.label;
+
+                const valueEl = document.createElement('span');
+                valueEl.className = 'player-vitals__value';
+                valueEl.textContent = item.value || '—';
+
+                itemEl.appendChild(labelEl);
+                itemEl.appendChild(valueEl);
+                container.appendChild(itemEl);
+            });
+
+            return container;
+        }
+
         function getPlayerData(playerId, slot) {
             const player = state.players[playerId];
             if (!player) return { id: playerId, name: 'Unknown Player', pos: '?', age: '?', team: '?', adp: null, ktc: null, slot, posRank: null };
@@ -1611,6 +1795,7 @@ const SEASON_META_HEADERS = {
 
             modalPlayerName.textContent = `${playerName}`;
             document.getElementById('modal-summary-chips').innerHTML = ''; // Clear previous chips
+            document.querySelector('#modal-header .player-vitals')?.remove();
             const existingHeaderContainer = document.querySelector('.modal-header-left-container');
             if(existingHeaderContainer) existingHeaderContainer.remove();
             modalBody.innerHTML = '<p class="text-center p-4">Loading game logs...</p>';
@@ -1654,6 +1839,12 @@ const SEASON_META_HEADERS = {
               : `<span>FA</span>`;
             headerContainer.appendChild(teamLogoChip);
             modalHeader.insertBefore(headerContainer, modalHeader.firstChild);
+
+            const vitalsElement = createPlayerVitalsElement(getPlayerVitals(player.id), 'modal');
+            const summaryRow = document.getElementById('modal-summary-row');
+            if (summaryRow?.parentElement) {
+                summaryRow.parentElement.insertBefore(vitalsElement, summaryRow);
+            }
 
             // Render summary chips
             const summaryChipsContainer = document.getElementById('modal-summary-chips');
@@ -2159,6 +2350,7 @@ const SEASON_META_HEADERS = {
 
                 nameHeader.appendChild(nameButton);
                 nameHeader.appendChild(tagsRow);
+                nameHeader.appendChild(createPlayerVitalsElement(getPlayerVitals(player.id), 'compare'));
                 headerContainer.appendChild(nameHeader);
 
                 playerNamesRow.appendChild(headerContainer);
