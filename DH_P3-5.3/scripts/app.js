@@ -17,7 +17,9 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
         const rosterContainer = document.getElementById('rosterContainer');
         const rosterGrid = document.getElementById('rosterGrid');
         const compareButton = document.getElementById('compareButton');
-        const clearCompareButton = document.getElementById('clearCompareButton');
+        const compareSearchToggle = document.getElementById('compareSearchToggle');
+        const compareSearchPopover = document.getElementById('compareSearchPopover');
+        const compareSearchInput = document.getElementById('compareSearchInput');
         const positionalViewBtn = document.getElementById('positionalViewBtn');
         const depthChartViewBtn = document.getElementById('depthChartViewBtn');
         const viewControls = document.getElementById('view-controls');
@@ -189,11 +191,12 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
         }
 
         // --- State ---
-        let state = { userId: null, leagues: [], players: {}, oneQbData: {}, sflxData: {}, currentLeagueId: null, isSuperflex: false, cache: {}, teamsToCompare: new Set(), isCompareMode: false, currentRosterView: 'positional', activePositions: new Set(), tradeBlock: {}, isTradeCollapsed: false, weeklyStats: {}, playerSeasonStats: {}, playerSeasonRanks: {}, playerWeeklyStats: {}, statsSheetsLoaded: false, seasonRankCache: null, isGameLogModalOpenFromComparison: false };
+        let state = { userId: null, leagues: [], players: {}, oneQbData: {}, sflxData: {}, currentLeagueId: null, isSuperflex: false, cache: {}, teamsToCompare: new Set(), isCompareMode: false, currentRosterView: 'positional', activePositions: new Set(), tradeBlock: {}, isTradeCollapsed: false, weeklyStats: {}, playerSeasonStats: {}, playerSeasonRanks: {}, playerWeeklyStats: {}, statsSheetsLoaded: false, seasonRankCache: null, isGameLogModalOpenFromComparison: false, compareSearchQuery: '' };
         const assignedLeagueColors = new Map();
         let nextColorIndex = 0;
         const assignedRyColors = new Map();
         let nextRyColorIndex = 0;
+        let compareSearchDebounceHandle = null;
 
         // --- Constants ---
         const API_BASE = 'https://api.sleeper.app/v1';
@@ -253,6 +256,8 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
             });
         }
 
+        setupCompareSearchControls();
+
         if (pageType === 'rosters') {
             leagueSelect?.addEventListener('change', (e) => {
                 handleLeagueSelect(e);
@@ -280,7 +285,6 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
             });
 
             compareButton?.addEventListener('click', handleCompareClick);
-            clearCompareButton?.addEventListener('click', () => handleClearCompare(true));
             positionalViewBtn?.addEventListener('click', () => setRosterView('positional'));
             depthChartViewBtn?.addEventListener('click', () => setRosterView('depth'));
             positionalFiltersContainer?.addEventListener('click', handlePositionFilter);
@@ -532,6 +536,153 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
             }
         }
 
+        function isCompareSearchOpen() {
+            return !!compareSearchPopover && !compareSearchPopover.classList.contains('hidden');
+        }
+
+        function openCompareSearchPopover() {
+            if (!compareSearchPopover) return;
+
+            compareSearchPopover.classList.remove('hidden');
+            compareSearchPopover.setAttribute('aria-hidden', 'false');
+            requestAnimationFrame(() => {
+                compareSearchPopover.classList.add('is-visible');
+            });
+            compareSearchToggle?.setAttribute('aria-expanded', 'true');
+
+            if (compareSearchInput) {
+                compareSearchInput.value = state.compareSearchQuery || '';
+                setTimeout(() => {
+                    try {
+                        compareSearchInput.focus({ preventScroll: true });
+                    } catch (error) {
+                        compareSearchInput.focus();
+                    }
+                    compareSearchInput.select();
+                }, 20);
+            }
+        }
+
+        function closeCompareSearchPopover(focusToggle = true) {
+            if (!compareSearchPopover || compareSearchPopover.classList.contains('hidden')) {
+                return;
+            }
+
+            compareSearchPopover.classList.remove('is-visible');
+            compareSearchPopover.setAttribute('aria-hidden', 'true');
+            compareSearchToggle?.setAttribute('aria-expanded', 'false');
+
+            let hideHandled = false;
+            const finalizeHide = () => {
+                if (hideHandled) return;
+                hideHandled = true;
+                compareSearchPopover.classList.add('hidden');
+                compareSearchPopover.removeEventListener('transitionend', finalizeHide);
+            };
+
+            compareSearchPopover.addEventListener('transitionend', finalizeHide);
+            setTimeout(finalizeHide, 180);
+
+            if (focusToggle && compareSearchToggle) {
+                try {
+                    compareSearchToggle.focus({ preventScroll: true });
+                } catch (error) {
+                    compareSearchToggle.focus();
+                }
+            }
+        }
+
+        function setupCompareSearchControls() {
+            if (!compareSearchToggle || !compareSearchPopover) {
+                if (compareSearchInput) {
+                    compareSearchInput.addEventListener('input', scheduleCompareSearchUpdate);
+                    compareSearchInput.addEventListener('search', () => {
+                        state.compareSearchQuery = compareSearchInput.value || '';
+                        if (compareSearchDebounceHandle) {
+                            clearTimeout(compareSearchDebounceHandle);
+                            compareSearchDebounceHandle = null;
+                        }
+                        applyCompareSearchFilter();
+                    });
+                }
+                applyCompareSearchFilter();
+                return;
+            }
+
+            compareSearchPopover.setAttribute('aria-hidden', 'true');
+
+            compareSearchToggle.addEventListener('click', (event) => {
+                event.preventDefault();
+                if (isCompareSearchOpen()) {
+                    closeCompareSearchPopover();
+                } else {
+                    openCompareSearchPopover();
+                }
+            });
+
+            const outsideEvent = window.PointerEvent ? 'pointerdown' : 'mousedown';
+            document.addEventListener(outsideEvent, (event) => {
+                if (!isCompareSearchOpen()) return;
+                const target = event.target;
+                if (compareSearchPopover.contains(target) || compareSearchToggle.contains(target)) {
+                    return;
+                }
+                closeCompareSearchPopover();
+            });
+
+            document.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape' && isCompareSearchOpen()) {
+                    event.preventDefault();
+                    closeCompareSearchPopover();
+                }
+            });
+
+            if (compareSearchInput) {
+                compareSearchInput.addEventListener('input', scheduleCompareSearchUpdate);
+                compareSearchInput.addEventListener('search', () => {
+                    state.compareSearchQuery = compareSearchInput.value || '';
+                    if (compareSearchDebounceHandle) {
+                        clearTimeout(compareSearchDebounceHandle);
+                        compareSearchDebounceHandle = null;
+                    }
+                    applyCompareSearchFilter();
+                });
+            }
+
+            applyCompareSearchFilter();
+        }
+
+        function scheduleCompareSearchUpdate() {
+            if (!compareSearchInput) return;
+
+            state.compareSearchQuery = compareSearchInput.value || '';
+            if (compareSearchDebounceHandle) {
+                clearTimeout(compareSearchDebounceHandle);
+            }
+
+            compareSearchDebounceHandle = setTimeout(() => {
+                compareSearchDebounceHandle = null;
+                applyCompareSearchFilter();
+            }, 140);
+        }
+
+        function applyCompareSearchFilter() {
+            const rawQuery = (compareSearchInput?.value ?? state.compareSearchQuery ?? '').toString();
+            state.compareSearchQuery = rawQuery;
+            const query = rawQuery.trim().toLowerCase();
+
+            const teamNodes = document.querySelectorAll('[data-team-name]');
+            teamNodes.forEach(node => {
+                const name = (node.dataset.teamName || '').toLowerCase();
+                const isMatch = !query || name.includes(query);
+                node.classList.toggle('compare-search-hidden', !isMatch);
+            });
+
+            if (compareSearchToggle) {
+                compareSearchToggle.classList.toggle('active', query.length > 0);
+            }
+        }
+
         function handleCompareClick() {
             state.isCompareMode = !state.isCompareMode;
             rosterView.classList.toggle('is-trade-mode', state.isCompareMode);
@@ -584,13 +735,11 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
         }
 
         function updateCompareButtonState() {
-            if (!compareButton || !clearCompareButton) {
+            if (!compareButton) {
                 return;
             }
             const count = state.teamsToCompare.size;
             compareButton.disabled = count < 2;
-            clearCompareButton.classList.toggle('hidden', count === 0);
-            clearCompareButton.classList.toggle('active', count >= 2);
 
             if (count > 1) {
                 compareButton.classList.add('glow-on-select');
@@ -2586,7 +2735,7 @@ const SEASON_META_HEADERS = {
                 const columnWrapper = document.createElement('div');
                 columnWrapper.className = 'roster-column';
                 columnWrapper.dataset.teamName = team.teamName;
-                
+
                 const header = document.createElement('div');
                 header.className = 'team-header-item';
                 
@@ -2612,6 +2761,8 @@ const SEASON_META_HEADERS = {
                 columnWrapper.appendChild(card);
                 rosterGrid.appendChild(columnWrapper);
             });
+
+            applyCompareSearchFilter();
         }
 
         function createDepthChartTeamCard(team) {
