@@ -42,6 +42,7 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
         const statsKeyContainer = document.getElementById('stats-key-container');
         const modalOverlay = document.querySelector('.modal-overlay');
         const modalPlayerName = document.getElementById('modal-player-name');
+        const modalPlayerVitals = document.getElementById('modal-player-vitals');
         const modalBody = document.getElementById('modal-body');
         const playerComparisonModal = document.getElementById('player-comparison-modal');
         const comparisonBackgroundOverlay = document.getElementById('comparison-modal-background-overlay');
@@ -1610,6 +1611,9 @@ const SEASON_META_HEADERS = {
             const playerName = fullPlayer ? `${fullPlayer.first_name} ${fullPlayer.last_name}` : player.name;
 
             modalPlayerName.textContent = `${playerName}`;
+            if (modalPlayerVitals) {
+                modalPlayerVitals.innerHTML = '';
+            }
             document.getElementById('modal-summary-chips').innerHTML = ''; // Clear previous chips
             const existingHeaderContainer = document.querySelector('.modal-header-left-container');
             if(existingHeaderContainer) existingHeaderContainer.remove();
@@ -1654,6 +1658,12 @@ const SEASON_META_HEADERS = {
               : `<span>FA</span>`;
             headerContainer.appendChild(teamLogoChip);
             modalHeader.insertBefore(headerContainer, modalHeader.firstChild);
+
+            if (modalPlayerVitals) {
+                modalPlayerVitals.innerHTML = '';
+                const vitals = getPlayerVitals(player.id);
+                modalPlayerVitals.appendChild(createPlayerVitalsElement(vitals, { variant: 'modal' }));
+            }
 
             // Render summary chips
             const summaryChipsContainer = document.getElementById('modal-summary-chips');
@@ -2159,6 +2169,8 @@ const SEASON_META_HEADERS = {
 
                 nameHeader.appendChild(nameButton);
                 nameHeader.appendChild(tagsRow);
+                const compareVitals = createPlayerVitalsElement(getPlayerVitals(player.id), { variant: 'compare' });
+                nameHeader.appendChild(compareVitals);
                 headerContainer.appendChild(nameHeader);
 
                 playerNamesRow.appendChild(headerContainer);
@@ -3237,6 +3249,175 @@ const SEASON_META_HEADERS = {
                 trimmed = trimmed.replace(/0+$/, '').replace(/\.$/, '');
             }
             return `${trimmed}%`;
+        }
+
+        function getPlayerVitals(playerId) {
+            const fallback = { age: '—', height: '—', weight: '—' };
+            const playerData = state.players?.[playerId];
+            if (!playerData) return fallback;
+
+            const collect = (...values) => values
+                .map(value => (typeof value === 'string' ? value.trim() : value))
+                .filter(value => value !== undefined && value !== null && value !== '');
+
+            const parseAge = () => {
+                const candidates = collect(
+                    playerData.age,
+                    playerData.metadata?.age,
+                    playerData.metadata?.player_age
+                );
+
+                for (const candidate of candidates) {
+                    const numeric = Number.parseInt(candidate, 10);
+                    if (Number.isFinite(numeric) && numeric > 0) {
+                        return String(numeric);
+                    }
+                }
+
+                if (playerData.birthdate) {
+                    const birth = new Date(playerData.birthdate);
+                    if (!Number.isNaN(birth.getTime())) {
+                        const today = new Date();
+                        let age = today.getFullYear() - birth.getFullYear();
+                        const hasHadBirthdayThisYear =
+                            today.getMonth() > birth.getMonth() ||
+                            (today.getMonth() === birth.getMonth() && today.getDate() >= birth.getDate());
+                        if (!hasHadBirthdayThisYear) age -= 1;
+                        if (Number.isFinite(age) && age > 0 && age < 80) {
+                            return String(age);
+                        }
+                    }
+                }
+
+                return null;
+            };
+
+            const formatHeightFromParts = (feet, inches) => {
+                const f = Number.parseInt(feet, 10);
+                const i = Number.parseInt(inches, 10);
+                if (!Number.isFinite(f) && !Number.isFinite(i)) return null;
+                const safeFeet = Number.isFinite(f) ? f : Math.floor(i / 12);
+                const safeInches = Number.isFinite(i) ? i % 12 : 0;
+                if (!Number.isFinite(safeFeet) || safeFeet <= 0) return null;
+                const boundedInches = Math.max(0, Math.min(11, safeInches));
+                return `${safeFeet}'${boundedInches}"`;
+            };
+
+            const parseHeightString = (value) => {
+                if (value === undefined || value === null) return null;
+                const str = String(value).trim();
+                if (!str) return null;
+
+                const digits = str.match(/\d+/g);
+                if (!digits || digits.length === 0) return null;
+                if (digits.length >= 2) {
+                    return formatHeightFromParts(digits[0], digits[1]);
+                }
+
+                const only = Number.parseInt(digits[0], 10);
+                if (!Number.isFinite(only) || only <= 0) return null;
+
+                const raw = digits[0];
+                if (raw.length >= 3) {
+                    const feetPart = raw.slice(0, raw.length - 2);
+                    const inchPart = raw.slice(-2);
+                    const formattedFromRaw = formatHeightFromParts(feetPart, inchPart);
+                    if (formattedFromRaw) return formattedFromRaw;
+                }
+
+                if (only > 12) {
+                    const feet = Math.floor(only / 12);
+                    const inches = only % 12;
+                    return `${feet}'${inches}"`;
+                }
+
+                return `${only}'0"`;
+            };
+
+            const parseHeight = () => {
+                const pairCandidates = [
+                    [playerData.height_feet, playerData.height_inches],
+                    [playerData.metadata?.height_feet, playerData.metadata?.height_inches],
+                    [playerData.height_ft, playerData.height_in],
+                    [playerData.metadata?.height_ft, playerData.metadata?.height_in]
+                ];
+                for (const [feet, inches] of pairCandidates) {
+                    const formatted = formatHeightFromParts(feet, inches);
+                    if (formatted) return formatted;
+                }
+
+                const heightCandidates = collect(
+                    playerData.height,
+                    playerData.metadata?.height,
+                    playerData.metadata?.player_height,
+                    playerData.height_inches,
+                    playerData.height_in,
+                    playerData.metadata?.height_inches,
+                    playerData.metadata?.height_in
+                );
+
+                for (const candidate of heightCandidates) {
+                    const formatted = parseHeightString(candidate);
+                    if (formatted) return formatted;
+                }
+
+                return null;
+            };
+
+            const parseWeight = () => {
+                const weightCandidates = collect(
+                    playerData.weight,
+                    playerData.metadata?.weight,
+                    playerData.metadata?.player_weight,
+                    playerData.weight_lbs,
+                    playerData.metadata?.weight_lbs
+                );
+
+                for (const candidate of weightCandidates) {
+                    const numeric = Number.parseInt(candidate, 10);
+                    if (Number.isFinite(numeric) && numeric > 0) {
+                        return `${numeric} lbs`;
+                    }
+                }
+
+                return null;
+            };
+
+            return {
+                age: parseAge() ?? '—',
+                height: parseHeight() ?? '—',
+                weight: parseWeight() ?? '—'
+            };
+        }
+
+        function createPlayerVitalsElement(vitals, { variant = 'modal' } = {}) {
+            const container = document.createElement('div');
+            container.className = `player-vitals player-vitals--${variant}`;
+
+            const items = [
+                { label: 'AGE', value: vitals.age },
+                { label: 'HEIGHT', value: vitals.height },
+                { label: 'WEIGHT', value: vitals.weight }
+            ];
+
+            items.forEach(({ label, value }) => {
+                const item = document.createElement('div');
+                item.className = 'player-vitals__item';
+
+                const labelEl = document.createElement('span');
+                labelEl.className = 'player-vitals__label';
+                labelEl.textContent = label;
+
+                const valueEl = document.createElement('span');
+                valueEl.className = 'player-vitals__value';
+                valueEl.textContent = value;
+
+                item.appendChild(labelEl);
+                item.appendChild(valueEl);
+                container.appendChild(item);
+            });
+
+            return container;
         }
 
         function getRankColor(rank) {
