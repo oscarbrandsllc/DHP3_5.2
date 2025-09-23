@@ -634,11 +634,38 @@ function showLegend(){ try{ document.getElementById('legend-section')?.classList
         }
 
         function filterTeamsByQuery(q) {
+            if (!rosterGrid) {
+                return;
+            }
+
             const query = (q || '').trim().toLowerCase();
-            const items = document.querySelectorAll('#rosterGrid [data-team-name]');
-            items.forEach(el => {
-                const name = (el.getAttribute('data-team-name') || '').toLowerCase();
-                el.classList.toggle('hidden', Boolean(query) && !name.includes(query));
+            const rosterColumns = rosterGrid.querySelectorAll('.roster-column');
+
+            rosterColumns.forEach(column => {
+                const playerRows = column.querySelectorAll('.player-row');
+                let hasMatch = false;
+
+                playerRows.forEach(row => {
+                    const playerName = (row.dataset.playerName || row.dataset.assetLabel || '').toLowerCase();
+                    const matches = !query || playerName.includes(query);
+                    row.classList.toggle('compare-search-hidden', Boolean(query) && !matches);
+                    if (matches) {
+                        hasMatch = true;
+                    }
+                });
+
+                const sections = column.querySelectorAll('.roster-section');
+                sections.forEach(section => {
+                    const visiblePlayer = section.querySelector('.player-row:not(.compare-search-hidden)');
+                    section.classList.toggle('compare-search-hidden', Boolean(query) && !visiblePlayer);
+                });
+
+                const pickRows = column.querySelectorAll('.pick-row');
+                pickRows.forEach(row => {
+                    row.classList.toggle('compare-search-hidden', Boolean(query));
+                });
+
+                column.classList.toggle('compare-search-hidden', Boolean(query) && !hasMatch);
             });
         }
 
@@ -2797,6 +2824,7 @@ const SEASON_META_HEADERS = {
             const displaySlot = state.currentRosterView === 'depth' ? (slotAbbr[player.slot] || player.slot) : player.pos;
             row.dataset.assetId = player.id;
             row.dataset.assetLabel = player.name;
+            row.dataset.playerName = player.name;
             row.dataset.assetKtc = player.ktc || 0;
             row.dataset.assetPos = displaySlot;
             row.dataset.assetBasePos = (player.pos || displaySlot || '').toUpperCase();
